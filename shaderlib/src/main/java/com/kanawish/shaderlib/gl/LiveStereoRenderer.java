@@ -59,10 +59,13 @@ import timber.log.Timber;
 public class LiveStereoRenderer implements CardboardView.StereoRenderer {
 
     // BENCHMARKS / DEBUG
-    private final Subscription movingAverageSubscription;
-    private final PublishSubject<DebugData> debugOutputPublishSubject;
-    private final DebugData debugDataRight;
-    private final DebugData debugDataLeft;
+    private PublishSubject<DebugData> debugOutputPublishSubject;
+    private DebugData debugDataRight;
+    private DebugData debugDataLeft;
+
+    private PublishSubject<Float> fpsSubject;
+    private Subscription movingAverageSubscription;
+
     private boolean compileError = false;
 
     private long benchLastTime = 0;
@@ -96,42 +99,18 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
     // SECTION: GL States
     private static final float Z_NEAR = 3f;//0.1f;
     private static final float Z_FAR = 7f;//100.0f;
-
     private static final float CAMERA_Z = 0.01f;
-
-    private final float[] scratch1 = new float[16];
-    private final float[] forward = new float[3];
-
-    private final float[] resolution = new float[2];
 
     private float[] headView = new float[16];
     private final float[] camera = new float[16];
 
     private final float[] pMatrix = new float[16];
-    private final float[] mvMatrix = new float[16];
-    private final float[] mvpMatrix = new float[16];
 
 
-
+    // TODO: Use dagger to make things cleaner / easier.
     public LiveStereoRenderer(Context context, CameraManager cameraManager) {
 
-        // TODO Use dagger, make things cleaner / easier.
         this.context = context;
-
-        this.cameraManager = cameraManager;
-        cameraManager
-                .cameraDataObservable()
-                .subscribe(
-                        new Action1<CameraManager.CameraData>() {
-                            @Override
-                            public void call(CameraManager.CameraData cameraData) {
-                                // Copy the arrays.
-                                float[] newRot = cameraData.getCameraRotation();
-                                System.arraycopy(newRot, 0, cameraRotation, 0, newRot.length);
-                                float[] newTrans = cameraData.getCameraTranslation();
-                                System.arraycopy(newTrans, 0, cameraTranslation, 0, newTrans.length);
-                            }
-                        });
 
         // Load initial shaders.
         String instancedVertexShader = null;
@@ -147,22 +126,14 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
 
         geometry = new Geometry(instancedVertexShader,instancedFragmentShader);
 
-/*
-        int range = 2;
-        for (int i = 0; i < range; i++)
-            for (int j = 0; j < range; j++)
-                for (int k = 0; k < range; k++) {
-                    final Cube model = new Cube();
-                    model.setScale(0.25f);
-                    model.setTranslation(i-1,j-1,-k-2);
-//                    final float[] color4fv = BLUE ; // {i/10f,j/10f,k/10f,1f};
-                    float div = (float)range;
-                    final float[] color4fv = {1f-i/div,j/div,k/div,1f};
-                    model.setColor4fv(color4fv); // TODO: Optim
-                    models.add(model);
-                }
-*/
+        this.cameraManager = cameraManager;
+        initCameraManager(cameraManager);
 
+        initDebugDataPublisher();
+
+    }
+
+    private void initDebugDataPublisher() {
         // Observable event streams for debug info (Headtracking)
         // TODO: DebugData is really a rough way to go. Emit Coordinate objects eventually instead?
         debugOutputPublishSubject = PublishSubject.create();
@@ -170,7 +141,10 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
         debugDataLeft = new DebugData();
         debugDataLeft.setType(DebugData.Type.LEFT);
 
-        // This averages FPS over the last 50 results.
+        // Regular calls to benchmarkFps() will publish the info we need at the next step.
+        fpsSubject = PublishSubject.create();
+
+        // We use fpsSubject as a source, and average it over the last 50 results.
         Observable<Float> movingAverage = movingAverage(fpsSubject.asObservable(), 50);
         movingAverageSubscription = movingAverage
             .sample(500, TimeUnit.MILLISECONDS)
@@ -181,88 +155,64 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
                     debugDataLeft.setFps(average);
                 }
             });
+    }
 
+    private void initCameraManager(CameraManager cameraManager) {
+        cameraManager
+            .cameraDataObservable()
+            .subscribe(
+                    new Action1<CameraManager.CameraData>() {
+                        @Override
+                        public void call(CameraManager.CameraData cameraData) {
+                            // Copy the arrays.
+                            float[] newRot = cameraData.getCameraRotation();
+                            System.arraycopy(newRot, 0, cameraRotation, 0, newRot.length);
+                            float[] newTrans = cameraData.getCameraTranslation();
+                            System.arraycopy(newTrans, 0, cameraTranslation, 0, newTrans.length);
+                        }
+                    });
     }
 
     /**
-     * Creates the buffers we use to store information about the 3D world.
-     * <p/>
-     * <p>OpenGL doesn't use Java arrays, but rather needs data in a format it can understand.
-     * Hence ByteBuffers.
+     * <p>Creates the buffers we use to store information about the 3D world.</p>
+     *
+     * <p>OpenGL doesn't use Java arrays, it needs data in a format it can understand.
+     * Hence ByteBuffers.</p>
      *
      * @param config The EGL configuration used when creating the surface.
      */
     @Override
     public void onSurfaceCreated(EGLConfig config) {
-        Timber.i("onSurfaceCreated");
-        GLES20.glClearColor(0.1f, 0.1f, 0.9f, 1.0f); // Dark background so text shows up well.
+        Timber.i("onSurfaceCreated()");
 
-        // Initialize some default textures, inspired by Shadertoy's approach.
+        // Initialize some default textures, much like Shadertoy's approach.
         int[] textureDataHandles = {
             SimpleGLUtils.loadTexture(context, R.drawable.tex03),
             SimpleGLUtils.loadTexture(context, R.drawable.tex12),
             SimpleGLUtils.loadTexture(context, R.drawable.tex16),
         };
 
-        // Load initial shaders.
-/*
-        String vertexShaderCode = null;
-        String fragmentShaderCode = null;
-        try {
-            vertexShaderCode = IOUtils.loadStringFromAsset(context, "shaders/default.vs");
-            fragmentShaderCode = IOUtils.loadStringFromAsset(context, "shaders/default.fs");
-//            fragmentShaderCode = IOUtils.loadStringFromAsset(context, "shaders/geo_01c_pyramid_fields.fs");
-        } catch (IOException e) {
-            Timber.e(e,"Failed to load shaders from disk, using backup shaders.");
-            vertexShaderCode = DefaultShaders.BACKUP_VERTEX_SHADER;
-            fragmentShaderCode = DefaultShaders.BACKUP_FRAGMENT_SHADER;
-        }
+        // To keep the sample code organized, and future proof it a bit for when we'll want to
+        // construct more complex scenes, I've created a custom class called "Geometry".
 
-        try {
-            modelsProgramHandle = SimpleGLUtils.loadGLProgram(vertexShaderCode,fragmentShaderCode);
-        } catch (ShaderCompileException e) {
-            Timber.e(e,"Failed to loadGLProgram()");
-            throw new RuntimeException(e);
-        }
-*/
-
-        // SHADER RECTANGLE
-/*
-        try {
-            shaderRectangle.initGlProgram();
-        } catch (ShaderCompileException e) {
-            // We need at least the starting shaders to compile, otherwise we'll fail fast.
-            throw new RuntimeException(e);
-        }
-        shaderRectangle.initBuffers();
-        shaderRectangle.initHandles();
-
-        shaderRectangle.setTextureDataHandles(textureDataHandles);
-*/
-
-        // GEOMETRY
+        // 1.- Buffers are data structures we use to pass data into the pipeline. 
+        geometry.initBuffers();
+        // 2.- We initialize the OpenGL program.
         try {
             geometry.initGlProgram();
         } catch (ShaderCompileException e) {
             // We need at least the starting shaders to compile, otherwise we'll fail fast.
             throw new RuntimeException(e);
         }
-        geometry.initBuffers();
+        // 3.- Once the program is ready, we can start initializing handles...
         geometry.initHandles();
+
         geometry.setTextureDataHandles(textureDataHandles);
 
-/*
-        for (Cube current:models) {
-            current.assignGLProgram(modelsProgramHandle);
-            current.initBuffers();
-            current.initHandles();
-            current.setTextureDataHandles(textureDataHandles);
-        }
-*/
+        SimpleGLUtils.checkGlErrorRTE("Geometry initialized");
 
-        SimpleGLUtils.checkGlErrorRTE("scenes initialized");
+        // OpenGL Pipeline configuration
         GLES20.glEnable(GLES20.GL_DEPTH_TEST);
-
     }
 
     @Override
@@ -284,35 +234,19 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
 
         SimpleGLUtils.checkGlErrorCE("onReadyToDraw");
 
-        // Set the camera position (View matrix)
-//        float[] startPos = new float[16];
+        // Set the camera position (aka View matrix)
         Matrix.setLookAtM(camera, 0,
             0, 0, 5.5f, // CAMERA_Z, // used to be 4, // eye xyz
             0f, 0f, 0f, // center xyz
             0f, 1.0f, 0.0f); // up vector xyz
 
-        // TODO: Test
-//        float[] rotMatrix = new float[16];
-//        Matrix.rotateM(rotMatrix, 0, cameraRotation[2], 0.0f, 0.0f, 1.0f);
-
-//        Matrix.multiplyMM(camera, 0, rotMatrix, 0, startPos, 0);
-
+        // We don't use this in our example, but it has uses.
         headTransform.getHeadView(headView, 0);
 
-        // Here we can set all the frame/scene-level variables that are relevant
+        // Here we can set general frame attributes.
 
         // TODO: Make it dynamic.
         geometry.setLightPos3fv(new float[] {0,20,-3});
-
-/*
-        float[] fwd = shaderRectangle.getForwardVec3();
-        headTransform.getForwardVector(fwd, 0);
-        float[] up = shaderRectangle.getUpVec3();
-        headTransform.getUpVector(up, 0);
-        float[] right = shaderRectangle.getRightVec3();
-        headTransform.getRightVector(right, 0);
-*/
-
     }
 
     int frameCount = 0 ;
@@ -325,62 +259,28 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
     public void onDrawEye(Eye eye) {
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
 
-        SimpleGLUtils.checkGlErrorCE("colorParam");
-
-        // Orthogonal-ish projection for raymarching trick.
-        float ratio = (float) eye.getViewport().width / eye.getViewport().height;
-
         // Quick patch for backpressure problem.
         if( frameCount++ % 15 == 0 ) generateDebugOutput(eye);
 
+        // Get a perspective ratio for the eye view.
+        float ratio = (float) eye.getViewport().width / eye.getViewport().height;
+        // Setup pMatrix, our 'projection matrix'
         // left & right, bottom & top, near & far
         Matrix.frustumM(pMatrix, 0, -ratio, ratio, -1, 1, 3, 70);
 
         // Calculate the projection and view transformation
-        float[] view = new float[16];
+        float[] vMatrix = new float[16];
+
         // TODO: Likely going to be a good idea to review the camera / model projection ops here.
-        if(true) {
-            Matrix.multiplyMM(view, 0, eye.getEyeView(), 0, camera, 0);
+        Matrix.multiplyMM(vMatrix, 0, eye.getEyeView(), 0, camera, 0);
 
-            Matrix.rotateM(pMatrix, 0, cameraRotation[1] * 0.05f, 1.0f, 0.0f, 0.0f);
-            Matrix.rotateM(pMatrix, 0, cameraRotation[0] * 0.05f, 0.0f, 1.0f, 0.0f);
-            Matrix.translateM(pMatrix, 0, cameraTranslation[0], cameraTranslation[1], cameraTranslation[2]);
-
-            Matrix.multiplyMM(mvpMatrix, 0, pMatrix, 0, view, 0); // We apply the eye view in this case.
-        } else {
-            view = camera ;
-            Matrix.multiplyMM(mvpMatrix, 0, pMatrix, 0, camera, 0); // We ignore the eye view here.
-        }
-
-/*
-        shaderRectangle.setEyeView(eye.getEyeView());
-        shaderRectangle.setResolution(eye.getViewport().width, eye.getViewport().height);
-        float[] color = eye.getType() == Eye.Type.MONOCULAR ? BLUE : eye.getType() == Eye.Type.LEFT ? RED : GREEN;
-        shaderRectangle.setMode(1);
-        shaderRectangle.setColorVec4(color);
-*/
-
-        // This has been failing when used alongside geometry draw().
-        // TODO Investigate possible causes, see below.
-        // http://stackoverflow.com/questions/12017175/what-can-cause-gldrawarrays-to-generate-a-gl-invalid-operation-error
-//        shaderRectangle.draw(mvpMatrix);
+        Matrix.rotateM(pMatrix, 0, cameraRotation[1] * 0.05f, 1.0f, 0.0f, 0.0f);
+        Matrix.rotateM(pMatrix, 0, cameraRotation[0] * 0.05f, 0.0f, 1.0f, 0.0f);
+        Matrix.translateM(pMatrix, 0, cameraTranslation[0], cameraTranslation[1], cameraTranslation[2]);
 
         geometry.setResolution2fv(eye.getViewport().width, eye.getViewport().height);
-//        geometry.setScale(0.25f);
-        geometry.update(pMatrix, view);
+        geometry.update(pMatrix, vMatrix);
         geometry.draw();
-
-/*
-        for (Cube current : models) {
-//        for( int i = 0 ; i < 2 ; i++) {
-//            Geometry current = models.get(i);
-            current.setResolution2fv(eye.getViewport().width, eye.getViewport().height);
-            current.update(pMatrix, view);
-            current.draw();
-        }
-*/
-        SimpleGLUtils.checkGlErrorCE("Drawing cube");
-
     }
 
     @Override
@@ -416,15 +316,12 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
         try {
             geometry.setVertexShaderCode(code);
             geometry.initGlProgram();
-//            shaderRectangle.setVertexShaderCode(code);
-//            shaderRectangle.initGlProgram();
         } catch (ShaderCompileException e) {
             Timber.d("Couldn't compile shader, will stay with previous version.", e);
             compileError = true ;
             return;
         }
         geometry.initHandles();
-//        shaderRectangle.initHandles();
     }
 
     /**
@@ -437,15 +334,12 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
         try {
             geometry.setFragmentShaderCode(fragmentShaderCode);
             geometry.initGlProgram();
-//            shaderRectangle.setFragmentShaderCode(fragmentShaderCode);
-//            shaderRectangle.initGlProgram();
         } catch (ShaderCompileException e) {
             Timber.d("Couldn't compile shader, will stay with previous version.", e);
             compileError = true ;
             return;
         }
         geometry.initHandles();
-//        shaderRectangle.initHandles();
     }
 
     /**
@@ -482,7 +376,7 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
             debugDataRight.setLine2(String.format("%1.2f, %1.2f, %1.2f, %1.2f", ev[4], ev[5], ev[6], ev[7]));
             debugDataRight.setLine3(String.format("%1.2f, %1.2f, %1.2f, %1.2f", ev[8], ev[9], ev[10], ev[11]));
             debugDataRight.setLine4(String.format("R %1.2f, %1.2f, %1.2f, %1.2f", ev[12], ev[13], ev[14], ev[15]));
-//            debugDataRight.setFps(benchFps);
+
             debugDataRight.setCompileError(compileError);
 
             debugOutputPublishSubject.onNext(debugDataRight);
@@ -491,14 +385,12 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
             debugDataLeft.setLine2(String.format("%1.2f, %1.2f, %1.2f, %1.2f", ev[4], ev[5], ev[6], ev[7]));
             debugDataLeft.setLine3(String.format("%1.2f, %1.2f, %1.2f, %1.2f", ev[8], ev[9], ev[10], ev[11]));
             debugDataLeft.setLine4(String.format("%1.2f, %1.2f, %1.2f, %1.2f L", ev[12], ev[13], ev[14], ev[15]));
-//            debugDataLeft.setFps(benchFps);
+
             debugDataLeft.setCompileError(compileError);
 
             debugOutputPublishSubject.onNext(debugDataLeft);
         }
     }
-
-    PublishSubject<Float> fpsSubject = PublishSubject.create();
 
     private void benchmarkFps() {
         benchCurrentTime = SystemClock.elapsedRealtime();
