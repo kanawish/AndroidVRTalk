@@ -299,11 +299,11 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
 
     /**
      * Live update the geometry data, queue the change.
-     * @param geometryData
+     * @param newGeometryData
      * @return if data was queued or not.
      */
-    public boolean updateGeometryData(GeometryData geometryData) {
-        return geometry.queue(geometryData);
+    public boolean updateGeometryData(GeometryData newGeometryData) {
+        return geometry.queue(newGeometryData);
     }
 
     /**
@@ -311,10 +311,10 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
      * <p/>
      * Need to make sure we run this in the right thread.
      */
-    public void updateVertexShader(String code) {
+    public void updateVertexShader(String newVertexShaderCode) {
         compileError = false ;
         try {
-            geometry.setVertexShaderCode(code);
+            geometry.setVertexShaderCode(newVertexShaderCode);
             geometry.initGlProgram();
         } catch (ShaderCompileException e) {
             Timber.d("Couldn't compile shader, will stay with previous version.", e);
@@ -329,10 +329,10 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
      * <p/>
      * Need to make sure we run this in the right thread.
      */
-    public void updateFragmentShader(String fragmentShaderCode) {
+    public void updateFragmentShader(String newFragmentShaderCode) {
         compileError = false ;
         try {
-            geometry.setFragmentShaderCode(fragmentShaderCode);
+            geometry.setFragmentShaderCode(newFragmentShaderCode);
             geometry.initGlProgram();
         } catch (ShaderCompileException e) {
             Timber.d("Couldn't compile shader, will stay with previous version.", e);

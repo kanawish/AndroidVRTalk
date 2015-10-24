@@ -30,6 +30,33 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * - Remove the / 3 on the vertex count.
  * - Any badly ordered or badly 'scoped' pipeline commands will bork it.
  *
+
+ TODO: Complete this UML, see if it's valuable.
+
+ @startuml
+
+ class StereoRenderer {
+ +onRendererShutdown()
+ +onSurfaceChanged(width, height)
+ +onSurfaceCreated(config)
+ +onNewFrame(headTransform)
+ +onDrawEye(eye)
+ +onFinishFrame(viewport)
+ }
+
+ StereoRenderer *-- Geometry
+ class Geometry {
+     +initGlProgram()
+     +initBuffers()
+     +assignGLProgram()
+     +initHandlers()
+     +draw()
+     +setVertexShaderCode()
+     +setFragmentShaderCode()
+ }
+
+ @enduml
+
  */
 public class Geometry implements Renderable {
 
@@ -269,14 +296,12 @@ public class Geometry implements Renderable {
      * Called (at intervals) from the main loop.
      */
     private void updateGeometryData() {
-
         // Create new buffers for new geometry data.
         final GeometryData data = dataQueue.poll();
         if( data != null ) {
             final GeometryData.Obj obj = data.objs.get(0);
             updateBuffers(obj);
         }
-
         // New buffers are done, they'll be fed into OpenGL at the next draw() call.
     }
 

@@ -10,6 +10,12 @@ import java.util.List;
  */
 public class GeometryData {
 
+    public static class Obj {
+        public float[] v;   // vertices
+        public float[] n;   // normals
+        public Instanced i; // instance data
+    }
+
     public static class Instanced {
         public int instancedCount;
         public float[] t; // translation vec3f
@@ -19,12 +25,5 @@ public class GeometryData {
         public float[] p; // params vec4f (These can be used for anything in the vector shader.)
     }
 
-    public static class Obj {
-        public float[] v;
-        public float[] n;
-        public Instanced i;
-    }
-
     public List<Obj> objs;
-
 }
