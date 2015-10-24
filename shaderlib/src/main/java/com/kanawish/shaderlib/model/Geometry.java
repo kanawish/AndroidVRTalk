@@ -30,6 +30,33 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * - Remove the / 3 on the vertex count.
  * - Any badly ordered or badly 'scoped' pipeline commands will bork it.
  *
+
+ TODO: Complete this UML, see if it's valuable.
+
+ @startuml
+
+ class StereoRenderer {
+ +onRendererShutdown()
+ +onSurfaceChanged(width, height)
+ +onSurfaceCreated(config)
+ +onNewFrame(headTransform)
+ +onDrawEye(eye)
+ +onFinishFrame(viewport)
+ }
+
+ StereoRenderer *-- Geometry
+ class Geometry {
+     +initGlProgram()
+     +initBuffers()
+     +assignGLProgram()
+     +initHandlers()
+     +draw()
+     +setVertexShaderCode()
+     +setFragmentShaderCode()
+ }
+
+ @enduml
+
  */
 public class Geometry implements Renderable {
 
@@ -142,6 +169,16 @@ public class Geometry implements Renderable {
 
 
     @Override
+    public void initGlProgram() throws ShaderCompileException {
+        // NOTE: vertexShaderCode and fragmentShaderCode are initialized at construction.
+        // NOTE: Each attribute is a String that holds a GLSL script.
+        // NOTE: If changed between frames, make sure to call initGlProgram() again.
+
+        // Let's jump into the loader code to see how this works...
+        this.programHandle = SimpleGLUtils.loadGLProgram(vertexShaderCode, fragmentShaderCode);
+    }
+
+    @Override
     public void initBuffers() {
         // Vertices
         vertexCount = DefaultModels.CUBE_COORDS.length / 3;
@@ -154,12 +191,7 @@ public class Geometry implements Renderable {
         scales = SimpleGLUtils.createFloatBuffer(new float[]{1f, 1f, 1f});
         parameters = SimpleGLUtils.createFloatBuffer(new float[]{0f, 0f, 0f, 0f});
 
-        colors = SimpleGLUtils.createFloatBuffer(new float[]{1f,0f,1f,1f});
-    }
-
-    @Override
-    public void initGlProgram() throws ShaderCompileException {
-        this.programHandle = SimpleGLUtils.loadGLProgram(vertexShaderCode, fragmentShaderCode);
+        colors = SimpleGLUtils.createFloatBuffer(new float[]{1f, 0f, 1f, 1f});
     }
 
 
@@ -172,20 +204,21 @@ public class Geometry implements Renderable {
         this.programHandle = programHandle;
     }
 
+    // NOTE: Handles are basically pointers to variables and constants that have been defined in our Shaders.
     @Override
     public void initHandles() {
 
-        // **** 'Standard' handles
+        // program uniform handles (equivalent to global constants) 
         uMVMatrixHandle = GLES30.glGetUniformLocation(programHandle, "uMVMatrix");
         uMVPMatrixHandle = GLES30.glGetUniformLocation(programHandle, "uMVPMatrix");
 
-        // Vertices and normals for our model.
+        // program attribute handles (attributes are per-vertex parameters, as briefly explained earlier) 
         aPositionHandle = GLES30.glGetAttribLocation(programHandle, "aPosition");
         aNormalHandle = GLES30.glGetAttribLocation(programHandle, "aNormal");
 
         SimpleGLUtils.checkGlErrorCE("Error fetching 'Standard' Program handles");
 
-        // NOTE: Per-instance data, see draw()
+        // NOTE: Per-*instance* data, see draw()
         aTranslationHandle = GLES30.glGetAttribLocation(programHandle, "aTranslationHandle");
         aRotationHandle = GLES30.glGetAttribLocation(programHandle, "aRotationHandle");
         aScaleHandle = GLES30.glGetAttribLocation(programHandle, "aScaleHandle");
@@ -223,7 +256,6 @@ public class Geometry implements Renderable {
         if (aColorHandle != -1) GLES30.glEnableVertexAttribArray(aColorHandle);
         if (aParametersHandle != -1) GLES30.glEnableVertexAttribArray(aParametersHandle);
 
-//        GLES30.glEnableVertexAttribArray(aColorHandle);
 //        GLES30.glEnableVertexAttribArray(aTextureCoordinateHandle);
 
         SimpleGLUtils.checkGlErrorCE("Error enabling attrib arrays.");
@@ -264,14 +296,12 @@ public class Geometry implements Renderable {
      * Called (at intervals) from the main loop.
      */
     private void updateGeometryData() {
-
         // Create new buffers for new geometry data.
         final GeometryData data = dataQueue.poll();
         if( data != null ) {
             final GeometryData.Obj obj = data.objs.get(0);
             updateBuffers(obj);
         }
-
         // New buffers are done, they'll be fed into OpenGL at the next draw() call.
     }
 
@@ -305,6 +335,20 @@ public class Geometry implements Renderable {
         } else {
             time1f = (SystemClock.elapsedRealtime() - systemStartTime) / 1000.0f;
         }
+    }
+
+    public void simpleDraw() {
+        GLES30.glUseProgram(programHandle);
+
+        // These uniforms are used in the vertex shader to plac...
+        GLES30.glUniformMatrix4fv(uMVMatrixHandle, 1, false, modelViewMatrix4fv, 0);
+        GLES30.glUniformMatrix4fv(uMVPMatrixHandle, 1, false, modelViewProjectionMatrix4fv, 0);
+
+        // NOTE: Here we assign vertex byte buffer data to attributes.
+        GLES30.glVertexAttribPointer(aPositionHandle, 3, GLES30.GL_FLOAT, false, 0, vertices);
+        GLES30.glVertexAttribPointer(aNormalHandle, 3, GLES30.GL_FLOAT, false, 0, normals);
+
+        GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 3);
     }
 
     @Override
@@ -367,19 +411,10 @@ public class Geometry implements Renderable {
             GLES30.glVertexAttribDivisor(aParametersHandle, 1);
         }
 
-
         // Draw command
         // https://developer.apple.com/library/ios/documentation/3DDrawing/Conceptual/OpenGLES_ProgrammingGuide/Performance/Performance.html#//apple_ref/doc/uid/TP40008793-CH105-SW21
         GLES30.glDrawArraysInstanced(GLES30.GL_TRIANGLES, 0, vertexCount, instancedCount);
         SimpleGLUtils.checkGlErrorCE("Drawing cube");
-
-/*
-        // Finish up by enabling attrib arrays
-        GLES30.glDisableVertexAttribArray(aPositionHandle);
-        GLES30.glDisableVertexAttribArray(aNormalHandle);
-//        GLES30.glDisableVertexAttribArray(aColorHandle);
-        GLES30.glDisableVertexAttribArray(aTextureCoordinateHandle);
-*/
 
     }
 

@@ -68,18 +68,22 @@ public class SimpleGLUtils {
     }
 
     /**
-     * @return the program handle to be used by our model objects.
+     * @return handle to a program composed of the provided shader code.
      */
     public static final int loadGLProgram(String vertexShaderCode, String fragmentShaderCode) throws ShaderCompileException {
 
+        // The loadShader() method calls load the vertex and the fragment shaders into the pipeline,
+        // and associate a "handle" to them.
         int vertexShaderHandle = SimpleGLUtils.loadShader(GLES30.GL_VERTEX_SHADER, vertexShaderCode);
         int fragmentShaderHandle = SimpleGLUtils.loadShader(GLES30.GL_FRAGMENT_SHADER, fragmentShaderCode);
 
-        int programHandle = GLES30.glCreateProgram();             // create empty OpenGL Program
+        // NOTE: Handles are an OpenGL identifier that point to a resource that has been created in the pipeline.
+
+        int programHandle = GLES30.glCreateProgram();             // create an empty OpenGL Program, get handle to it.
         SimpleGLUtils.checkGlErrorRTE("glCreateProgram");
-        GLES30.glAttachShader(programHandle, vertexShaderHandle);   // add the vertex shader to program
+        GLES30.glAttachShader(programHandle, vertexShaderHandle);   // attach the vertex shader to program.
         SimpleGLUtils.checkGlErrorRTE("glAttachShader vertex");
-        GLES30.glAttachShader(programHandle, fragmentShaderHandle); // add the fragment shader to program
+        GLES30.glAttachShader(programHandle, fragmentShaderHandle); // attach the fragment shader to program
         SimpleGLUtils.checkGlErrorRTE("glAttachShader frag");
         GLES30.glLinkProgram(programHandle);                  // create OpenGL program executables
         SimpleGLUtils.checkGlErrorRTE("glLinkProgram");

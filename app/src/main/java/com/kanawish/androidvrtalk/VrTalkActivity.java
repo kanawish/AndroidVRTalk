@@ -112,6 +112,7 @@ CardboardView*--CardboardView.StereoRenderer
 
 @enduml
 
+
  */
 public class VrTalkActivity extends CardboardActivity {
 
