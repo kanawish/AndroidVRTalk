@@ -411,19 +411,10 @@ public class Geometry implements Renderable {
             GLES30.glVertexAttribDivisor(aParametersHandle, 1);
         }
 
-
         // Draw command
         // https://developer.apple.com/library/ios/documentation/3DDrawing/Conceptual/OpenGLES_ProgrammingGuide/Performance/Performance.html#//apple_ref/doc/uid/TP40008793-CH105-SW21
         GLES30.glDrawArraysInstanced(GLES30.GL_TRIANGLES, 0, vertexCount, instancedCount);
         SimpleGLUtils.checkGlErrorCE("Drawing cube");
-
-/*
-        // Finish up by enabling attrib arrays
-        GLES30.glDisableVertexAttribArray(aPositionHandle);
-        GLES30.glDisableVertexAttribArray(aNormalHandle);
-//        GLES30.glDisableVertexAttribArray(aColorHandle);
-        GLES30.glDisableVertexAttribArray(aTextureCoordinateHandle);
-*/
 
     }
 
