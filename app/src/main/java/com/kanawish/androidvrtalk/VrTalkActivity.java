@@ -17,10 +17,14 @@ import com.kanawish.common.InputData;
 import com.kanawish.common.InputDataBuilder;
 import com.kanawish.shaderlib.domain.CameraManager;
 import com.kanawish.shaderlib.domain.DebugData;
+import com.kanawish.shaderlib.domain.GeometryManager;
 import com.kanawish.shaderlib.gl.LiveStereoRenderer;
 import com.kanawish.shaderlib.model.GeometryData;
 import com.kanawish.shaderlib.model.ShaderData;
+import com.kanawish.shaderlib.utils.IOUtils;
 
+
+import java.io.IOException;
 
 import butterknife.Bind;
 import rx.android.schedulers.AndroidSchedulers;
@@ -257,6 +261,14 @@ public class VrTalkActivity extends CardboardActivity {
         // The camera manager will be used to help us move the viewpoint in our scene, etc.
 
         cameraManager = new CameraManager();
+
+        // NOTE: Just a test
+        try {
+            GeometryManager.generateGeometryData(IOUtils.loadStringFromAsset(this,"js/bundle.js"));
+        } catch (IOException e) {
+            e.printStackTrace();
+            Timber.e(e,"problem parsing bundle.js");
+        }
 
         // Configure the cardboardView. There's a lot of available options here...
         // TODO: Try to demo and explain some more of these in the talk.

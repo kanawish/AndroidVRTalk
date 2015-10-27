@@ -28,7 +28,6 @@ ext {
     // TODO: Make this more granular, see u2020 for reference.
     extVersionCode = 2;
     extVersionName = "1.0.1";
-
 }
 
 allprojects {

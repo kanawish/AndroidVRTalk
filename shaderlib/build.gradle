@@ -22,5 +22,7 @@ dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile project(':common')
 
+    compile 'com.squareup.moshi:moshi:1.0.0'
+
     testCompile 'junit:junit:4.12'
 }
