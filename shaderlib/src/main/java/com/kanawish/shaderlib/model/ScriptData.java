@@ -1,15 +1,15 @@
 package com.kanawish.shaderlib.model;
 
 /**
- *
+ * Created by ecaron on 15-10-28.
  */
-public class ShaderData {
+public class ScriptData {
     String code;
 
-    public ShaderData() {
+    public ScriptData() {
     }
 
-    public ShaderData(String code) {
+    public ScriptData(String code) {
         this.code = code;
     }
 

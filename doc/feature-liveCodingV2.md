@@ -26,6 +26,11 @@ Actually Nearby looks perfect for our use case. Just need to check if we're requ
 ### Rhino + Browserify 
 Looks like it's possible to run the geometry building javascript on the device. That opens up some nice possibilities, we could imagine live updates of all kinds at that time. Using also watchify and other js build tools, seems reasonable to think we could even add new 'requires' OTA. 
 
+### Chrome V8 + Browserify?
+**UPDATE 15/10/30** - Rhino is not working that great, it doesn't like Rx, or anything fancy like the Firebase plugin, etc. 
+
+At first I figured I might do without using Chrome as a js interpreter, but it looks like it'll give much better perf, so I'll put vinegar in my wine ;-) and try to use it, the perf will likely be better.
+
 ### Updating over WiFi Direct
 Could be interesting to avoid needing a wifi hub, but, it's easy enough to join an open wifi network.. it could be good for an eventual production app, to eliminate the 'let me on your wifi' friction points for multiplayer.
 
@@ -54,9 +59,11 @@ NOTE:  *Actually, why bother? Nearby should be fine*
 Big difference now will be that we publish the javascript program for the geometry, instead of publishing the geometry data itself. That part should be possible thanks to Rhino + Browserify, and should become realtime thanks to Watchify.
 
 Roadmap: 
-- [ ] Realtime *scripting* over Firebase
-	-  [x] gulp + Browserify + gulp.watch
-	-  [ ] Rhino client execution
+
+- [x] Realtime *scripting* over Firebase
+	- [x] gulp + Browserify + gulp.watch
+	- [x] Rhino client execution
+	- [ ] Upgrade to Chrome v8
 
 ## Further notes and ideas
 
