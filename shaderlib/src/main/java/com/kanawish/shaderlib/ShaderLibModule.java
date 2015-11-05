@@ -1,6 +1,7 @@
 package com.kanawish.shaderlib;
 
 import com.kanawish.shaderlib.domain.CameraManager;
+import com.kanawish.shaderlib.domain.GeometryManager;
 import com.kanawish.shaderlib.domain.PipelineProgramBus;
 
 import dagger.Module;
@@ -12,7 +13,8 @@ import dagger.Module;
 @Module(
     injects = {
         CameraManager.class,
-        PipelineProgramBus.class
+        PipelineProgramBus.class,
+        GeometryManager.class
     },
     complete = false,
     library = true

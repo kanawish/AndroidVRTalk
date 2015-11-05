@@ -1,10 +1,20 @@
+apply plugin: 'idea'
 apply plugin: 'com.android.library'
 apply plugin: 'com.neenbedankt.android-apt'
 apply plugin: 'me.tatarka.retrolambda'
 
+idea {
+    module {
+        // if you love browsing Javadoc
+        downloadJavadoc = true
+        // and love reading sources
+        downloadSources = true
+    }
+}
+
 android {
-    compileSdkVersion extCompileSdkVersion
-    buildToolsVersion extBuildToolsVersion
+    compileSdkVersion 23
+    buildToolsVersion '23.0.1'
 
     defaultConfig {
         minSdkVersion extMinSdkVersion
@@ -27,9 +37,7 @@ android {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile project(':common')
-
     compile 'com.squareup.dagger:dagger:1.2.2'
     apt 'com.squareup.dagger:dagger-compiler:1.2.2'
-
     testCompile 'junit:junit:4.12'
 }

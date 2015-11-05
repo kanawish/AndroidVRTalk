@@ -10,6 +10,7 @@ import com.kanawish.shaderlib.utils.SimpleGLUtils;
 import com.kanawish.shaderlib.defaults.DefaultModels;
 
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
@@ -82,6 +83,7 @@ public class Geometry implements Renderable {
     private FloatBuffer rotations;
     private FloatBuffer scales;
     private FloatBuffer parameters;
+//    private IntBuffer modes;
 
     // TODO: Implement
     private FloatBuffer colors; // Might want multiple?
@@ -107,10 +109,8 @@ public class Geometry implements Renderable {
     private int aTranslationHandle;
     private int aRotationHandle;
     private int aScaleHandle;
-    private int aParametersHandle; // We assume 4 extra params for vector shader would be enough for the moment.
-
-    // TODO: Implement
     private int aColorHandle;
+    private int aParametersHandle; // We assume 4 extra params for vector shader would be enough for the moment.
 
     private int aTextureCoordinateHandle;
 
@@ -120,9 +120,6 @@ public class Geometry implements Renderable {
     private int uLightPosHandle;
 
     private int uTime;
-    private int uMode;
-
-    private int uColor;
 
     private int [] uTextureUniformHandles = new int [8]; // Used to pass in the texture.
 
@@ -132,7 +129,7 @@ public class Geometry implements Renderable {
     private float[] modelViewMatrix4fv = new float[16];
 
     private float[] modelViewProjectionMatrix4fv = new float[16];
-    private int mode1i;
+//    private int mode1i;
 
     private float[] eyeViewMatrix4fv = new float[16];
     // In seconds, initialized to 0 on first call to draw.
@@ -186,12 +183,12 @@ public class Geometry implements Renderable {
         normals = SimpleGLUtils.createFloatBuffer(DefaultModels.CUBE_NORMALS);
 
         instancedCount = 1;
+
         translations = SimpleGLUtils.createFloatBuffer(new float[]{0f, 0f, 0f});
         rotations = SimpleGLUtils.createFloatBuffer(new float[]{0f, 0f, 0f});
         scales = SimpleGLUtils.createFloatBuffer(new float[]{1f, 1f, 1f});
-        parameters = SimpleGLUtils.createFloatBuffer(new float[]{0f, 0f, 0f, 0f});
-
         colors = SimpleGLUtils.createFloatBuffer(new float[]{1f, 0f, 1f, 1f});
+        parameters = SimpleGLUtils.createFloatBuffer(new float[]{0f, 0f, 0f, 1f});
     }
 
 
@@ -222,9 +219,8 @@ public class Geometry implements Renderable {
         aTranslationHandle = GLES30.glGetAttribLocation(programHandle, "aTranslationHandle");
         aRotationHandle = GLES30.glGetAttribLocation(programHandle, "aRotationHandle");
         aScaleHandle = GLES30.glGetAttribLocation(programHandle, "aScaleHandle");
-        // TODO: Implement. Likely will want them 'per-instance' as well..
-        aColorHandle = GLES30.glGetAttribLocation(programHandle, "aColor");
 
+        aColorHandle = GLES30.glGetAttribLocation(programHandle, "aColor");
         aParametersHandle = GLES30.glGetAttribLocation(programHandle, "aParametersHandle");
 
         aTextureCoordinateHandle = GLES30.glGetAttribLocation(programHandle, "aTexCoordinate");
@@ -237,7 +233,7 @@ public class Geometry implements Renderable {
         uLightPosHandle = GLES30.glGetUniformLocation(programHandle, "uLightPos");
         uTime = GLES30.glGetUniformLocation(programHandle, "uTime");
 
-        uMode = GLES30.glGetUniformLocation(programHandle, "uMode");
+//        uMode = GLES30.glGetUniformLocation(programHandle, "uMode");
 
         for( int i = 0 ; i < textureUnits.length ; i++ ) {
             uTextureUniformHandles[i] = GLES30.glGetUniformLocation(programHandle, "uTexture"+i);
@@ -316,6 +312,7 @@ public class Geometry implements Renderable {
         scales = null;
         colors = null;
         parameters = null;
+//        modes = null;
 
         if (obj.i != null) {
             instancedCount = obj.i.instancedCount;
@@ -324,6 +321,7 @@ public class Geometry implements Renderable {
             if (obj.i.s != null) scales = SimpleGLUtils.createFloatBuffer(obj.i.s);
             if (obj.i.c != null) colors = SimpleGLUtils.createFloatBuffer(obj.i.c);
             if (obj.i.p != null) parameters = SimpleGLUtils.createFloatBuffer(obj.i.p);
+//            if (obj.i.m != null) modes = SimpleGLUtils.createIntBuffer(obj.i.m);
         }
     }
 
@@ -377,7 +375,7 @@ public class Geometry implements Renderable {
         SimpleGLUtils.checkGlErrorCE("Error assigning / binding textures");
 
         // More 'Fragment shader specific' assignments
-        GLES30.glUniform1i(uMode, mode1i);
+//        GLES30.glUniform1i(uMode, mode1i);
         GLES30.glUniformMatrix4fv(uEyeViewMatrix, 1, false, eyeViewMatrix4fv, 0); // Allows shader to situate itself.
         GLES30.glUniform1f(uTime, time1f);
 
@@ -410,6 +408,7 @@ public class Geometry implements Renderable {
             GLES30.glVertexAttribPointer(aParametersHandle, 4, GLES30.GL_FLOAT, false, 0, parameters);
             GLES30.glVertexAttribDivisor(aParametersHandle, 1);
         }
+
 
         // Draw command
         // https://developer.apple.com/library/ios/documentation/3DDrawing/Conceptual/OpenGLES_ProgrammingGuide/Performance/Performance.html#//apple_ref/doc/uid/TP40008793-CH105-SW21
@@ -457,9 +456,11 @@ public class Geometry implements Renderable {
         this.textureDataHandles = textureDataHandles;
     }
 
+/*
     public void setMode1i(int mode1i) {
         this.mode1i = mode1i;
     }
+*/
 
     public void setLightPos3fv(float[] lightPos3fv) {
         for (int i = 0; i < lightPos3fv.length; i++) this.lightPos3fv[i] = lightPos3fv[i];

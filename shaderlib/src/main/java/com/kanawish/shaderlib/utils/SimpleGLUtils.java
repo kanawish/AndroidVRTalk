@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
 import java.util.List;
 
@@ -39,10 +40,22 @@ public class SimpleGLUtils {
 
     public static final int BYTES_PER_SHORT = 2;
     public static final int BYTES_PER_FLOAT = 4;
+    public static final int BYTES_PER_INT = 4;
+
 
     public static final int COORDS_PER_VERTEX = 3;
     public static final int VERTEX_STRIDE = COORDS_PER_VERTEX * BYTES_PER_FLOAT; // 4 bytes per vertex coord (float)
 
+    public static final IntBuffer createIntBuffer(int[] ints) {
+        ByteBuffer bb = ByteBuffer.allocateDirect(
+            // (# of  values * 4 bytes per int)
+            ints.length * BYTES_PER_INT);
+        bb.order(ByteOrder.nativeOrder());
+        IntBuffer intBufferBuffer = bb.asIntBuffer();
+        intBufferBuffer.put(ints);
+        intBufferBuffer.position(0);
+        return intBufferBuffer;
+    }
 
     public static final FloatBuffer createFloatBuffer(float[] floats) {
         ByteBuffer bb = ByteBuffer.allocateDirect(

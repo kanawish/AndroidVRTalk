@@ -29,12 +29,14 @@ import com.kanawish.shaderlib.utils.IOUtils;
 
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import dagger.ObjectGraph;
+import rx.Observable;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.android.schedulers.HandlerScheduler;
@@ -252,6 +254,7 @@ public class VrTalkActivity extends CardboardActivity {
     // The camera manager will be used to help us move the viewpoint in our scene, etc.
     @Inject CameraManager cameraManager;
     @Inject PipelineProgramBus programBus;
+    @Inject GeometryManager geometryManager;
 
     // TODO: Inject
     LiveStereoRenderer renderer;
@@ -345,9 +348,11 @@ public class VrTalkActivity extends CardboardActivity {
                 .geoScriptBus()
                 .map(script -> String.format(geoWrapper, script))
                 .observeOn(Schedulers.computation())
-                .map(script -> GeometryManager.generateGeometryData(script))
+//                .map(script -> GeometryManager.rhinoGeometryData(script))
+//                .map(script -> GeometryManager.duktapeGeometryData(script))
+                .map(script -> geometryManager.webviewGeometryData(script))
                 .doOnError(throwable -> Timber.e(throwable, "GeometryScript failed to execute."))
-                .retry()
+                .retryWhen(e -> e.flatMap( i -> Observable.timer(5000, TimeUnit.MILLISECONDS)))
                 .subscribe(data -> renderer.updateGeometryData(data));
 
         vertexSub = programBus
