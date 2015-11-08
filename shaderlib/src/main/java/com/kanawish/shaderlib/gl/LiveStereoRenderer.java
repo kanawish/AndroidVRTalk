@@ -282,9 +282,10 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
         // TODO: Likely going to be a good idea to review the camera / model projection ops here.
         Matrix.multiplyMM(vMatrix, 0, eye.getEyeView(), 0, camera, 0);
 
-        Matrix.rotateM(pMatrix, 0, cameraRotation[1] * 0.05f, 1.0f, 0.0f, 0.0f);
-        Matrix.rotateM(pMatrix, 0, cameraRotation[0] * 0.05f, 0.0f, 1.0f, 0.0f);
-        Matrix.translateM(pMatrix, 0, cameraTranslation[0], cameraTranslation[1], cameraTranslation[2]);
+        // Temporarily disabling the touch-camera movement,
+//        Matrix.rotateM(pMatrix, 0, cameraRotation[1] * 0.05f, 1.0f, 0.0f, 0.0f);
+//        Matrix.rotateM(pMatrix, 0, cameraRotation[0] * 0.05f, 0.0f, 1.0f, 0.0f);
+//        Matrix.translateM(pMatrix, 0, cameraTranslation[0], cameraTranslation[1], cameraTranslation[2]);
 
         geometry.setResolution2fv(eye.getViewport().width, eye.getViewport().height);
         geometry.update(pMatrix, vMatrix);

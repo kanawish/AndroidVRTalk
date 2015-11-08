@@ -10,7 +10,6 @@ import com.kanawish.shaderlib.utils.SimpleGLUtils;
 import com.kanawish.shaderlib.defaults.DefaultModels;
 
 import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
@@ -89,11 +88,6 @@ public class Geometry implements Renderable {
     private FloatBuffer colors; // Might want multiple?
     private FloatBuffer textureCoords; // Might want multiple?
 
-    // **** Matrices
-//    private float[] camera = new float[16]; // Outside our scope.
-//    private float[] view = new float[16]; // Should be passed in. (actually is...)
-    private float[] modelMatrix = new float[16]; // Our model's transformation.
-
     // **** Program
     private String vertexShaderCode;
     private String fragmentShaderCode;
@@ -125,7 +119,11 @@ public class Geometry implements Renderable {
 
     private int [] textureDataHandles; // Handle to our texture data. (See loader helper method)
 
-    // **** Actual data to be passed via handles
+    // **** Matrices
+//    private float[] camera = new float[16]; // Outside our scope.
+//    private float[] view = new float[16]; // Should be passed in. (actually is...)
+    private float[] modelMatrix4fv = new float[16]; // Our model's transformation.
+
     private float[] modelViewMatrix4fv = new float[16];
 
     private float[] modelViewProjectionMatrix4fv = new float[16];
@@ -138,8 +136,8 @@ public class Geometry implements Renderable {
 
     private float[] lightPos3fv = new float[3];
 
-    // Model transforms
-    private float[] modelTranslation = new float[]{0, -1f, -1.0f};
+    // Model transforms (unused right now, since each iteration has it's own transforms.)
+    private float[] modelTranslation = new float[]{0, 0, 0};
     private float[] modelRotation = new float[]{0, 0, 0};
     private float modelScale = 1.0f ;
 
@@ -273,17 +271,17 @@ public class Geometry implements Renderable {
         updateTime();
 
         // Object first appears directly in front of user.
-        Matrix.setIdentityM(modelMatrix, 0);
-        Matrix.translateM(modelMatrix, 0, modelTranslation[0], modelTranslation[1], modelTranslation[2]);
+        Matrix.setIdentityM(modelMatrix4fv, 0);
+        Matrix.translateM(modelMatrix4fv, 0, modelTranslation[0], modelTranslation[1], modelTranslation[2]);
         // TODO: Probably doing this wrong, fix this.
-        Matrix.rotateM(modelMatrix, 0, modelRotation[0], 1.0f, 0.0f, 0.0f);
-        Matrix.rotateM(modelMatrix, 0, modelRotation[1], 0.0f, 1.0f, 0.0f);
-        Matrix.rotateM(modelMatrix, 0, modelRotation[2], 0.0f, 0.0f, 1.0f);
-        Matrix.scaleM(modelMatrix,0,modelScale,modelScale,modelScale);
+        Matrix.rotateM(modelMatrix4fv, 0, modelRotation[0], 1.0f, 0.0f, 0.0f);
+        Matrix.rotateM(modelMatrix4fv, 0, modelRotation[1], 0.0f, 1.0f, 0.0f);
+        Matrix.rotateM(modelMatrix4fv, 0, modelRotation[2], 0.0f, 0.0f, 1.0f);
+        Matrix.scaleM(modelMatrix4fv,0,modelScale,modelScale,modelScale);
 
-        Matrix.multiplyMM(modelViewMatrix4fv, 0, viewMatrix, 0, modelMatrix, 0);
+        Matrix.multiplyMM(modelViewMatrix4fv, 0, viewMatrix, 0, modelMatrix4fv, 0);
         Matrix.multiplyMM(modelViewProjectionMatrix4fv, 0, perspectiveMatrix, 0, modelViewMatrix4fv, 0);
-//        Matrix.multiplyMM(modelViewProjectionMatrix4fv, 0, perspectiveMatrix, 0, modelMatrix, 0);
+//        Matrix.multiplyMM(modelViewProjectionMatrix4fv, 0, perspectiveMatrix, 0, modelMatrix4fv, 0);
 
         // Ready for draw() call.
     }
