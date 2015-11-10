@@ -94,6 +94,9 @@ public class Geometry implements Renderable {
     private int programHandle;
 
     // **** Handles
+    private int uMMatrixHandle;
+    private int uVMatrixHandle;
+    private int uPMatrixHandle;
     private int uMVMatrixHandle;
     private int uMVPMatrixHandle;
 
@@ -123,18 +126,17 @@ public class Geometry implements Renderable {
 //    private float[] camera = new float[16]; // Outside our scope.
 //    private float[] view = new float[16]; // Should be passed in. (actually is...)
     private float[] modelMatrix4fv = new float[16]; // Our model's transformation.
-
+    private float[] viewMatrix4fv = new float[16]; // Our view matrix (camera basically)
+    private float[] projectionMatrix4fv = new float[16]; // Our perspective transformation.
     private float[] modelViewMatrix4fv = new float[16];
-
     private float[] modelViewProjectionMatrix4fv = new float[16];
 //    private int mode1i;
 
-    private float[] eyeViewMatrix4fv = new float[16];
-    // In seconds, initialized to 0 on first call to draw.
-    float time1f = -1;
     private float[] resolution2fv = new float[] {256,256}; // Default value to help if we forget to assign this.
-
+    private float[] eyeViewMatrix4fv = new float[16];
     private float[] lightPos3fv = new float[3];
+    float time1f = -1; // In seconds, initialized to 0 on first call to draw.
+
 
     // Model transforms (unused right now, since each iteration has it's own transforms.)
     private float[] modelTranslation = new float[]{0, 0, 0};
@@ -204,6 +206,10 @@ public class Geometry implements Renderable {
     public void initHandles() {
 
         // program uniform handles (equivalent to global constants) 
+        uMMatrixHandle = GLES30.glGetUniformLocation(programHandle, "uMMatrix");
+        uVMatrixHandle = GLES30.glGetUniformLocation(programHandle, "uVMatrix");
+        uPMatrixHandle = GLES30.glGetUniformLocation(programHandle, "uPMatrix");
+
         uMVMatrixHandle = GLES30.glGetUniformLocation(programHandle, "uMVMatrix");
         uMVPMatrixHandle = GLES30.glGetUniformLocation(programHandle, "uMVPMatrix");
 
@@ -262,7 +268,7 @@ public class Geometry implements Renderable {
      * Should be called before each 'draw()'
      */
     @Override
-    public void update(float[] perspectiveMatrix, float[] viewMatrix) {
+    public void update(float[] projectionMatrix, float[] viewMatrix) {
 
         // Once every X updates.
         // TODO: Come up with something better re: update cycle.
@@ -277,10 +283,13 @@ public class Geometry implements Renderable {
         Matrix.rotateM(modelMatrix4fv, 0, modelRotation[0], 1.0f, 0.0f, 0.0f);
         Matrix.rotateM(modelMatrix4fv, 0, modelRotation[1], 0.0f, 1.0f, 0.0f);
         Matrix.rotateM(modelMatrix4fv, 0, modelRotation[2], 0.0f, 0.0f, 1.0f);
-        Matrix.scaleM(modelMatrix4fv,0,modelScale,modelScale,modelScale);
+        Matrix.scaleM(modelMatrix4fv, 0, modelScale, modelScale, modelScale);
 
-        Matrix.multiplyMM(modelViewMatrix4fv, 0, viewMatrix, 0, modelMatrix4fv, 0);
-        Matrix.multiplyMM(modelViewProjectionMatrix4fv, 0, perspectiveMatrix, 0, modelViewMatrix4fv, 0);
+        viewMatrix4fv = viewMatrix ;
+        projectionMatrix4fv = projectionMatrix ;
+
+        Matrix.multiplyMM(modelViewMatrix4fv, 0, viewMatrix4fv, 0, modelMatrix4fv, 0);
+        Matrix.multiplyMM(modelViewProjectionMatrix4fv, 0, projectionMatrix4fv, 0, modelViewMatrix4fv, 0);
 //        Matrix.multiplyMM(modelViewProjectionMatrix4fv, 0, perspectiveMatrix, 0, modelMatrix4fv, 0);
 
         // Ready for draw() call.
@@ -355,7 +364,13 @@ public class Geometry implements Renderable {
         SimpleGLUtils.checkGlErrorRTE("Error on glUseProgram()"); // Extra check, this spot is sensitive.
 
         // Model/View/Projection Matrix assignments
-        // TODO: Add the model as well, to help with lighting.
+        GLES30.glUniformMatrix4fv(uMMatrixHandle, 1, false, modelMatrix4fv, 0);
+        SimpleGLUtils.checkGlErrorRTE("Error on uMMatrixHandle"); // Extra check, this spot is sensitive.
+        GLES30.glUniformMatrix4fv(uVMatrixHandle, 1, false, viewMatrix4fv, 0);
+        SimpleGLUtils.checkGlErrorRTE("Error on uVMatrixHandle"); // Extra check, this spot is sensitive.
+        GLES30.glUniformMatrix4fv(uPMatrixHandle, 1, false, projectionMatrix4fv, 0);
+        SimpleGLUtils.checkGlErrorRTE("Error on uPMatrixHandle"); // Extra check, this spot is sensitive.
+
         GLES30.glUniformMatrix4fv(uMVMatrixHandle, 1, false, modelViewMatrix4fv, 0);
         SimpleGLUtils.checkGlErrorRTE("Error on uMVMatrixHandle"); // Extra check, this spot is sensitive.
         GLES30.glUniformMatrix4fv(uMVPMatrixHandle, 1, false, modelViewProjectionMatrix4fv, 0); // Apply the projection and view transformation
@@ -374,11 +389,12 @@ public class Geometry implements Renderable {
 
         // More 'Fragment shader specific' assignments
 //        GLES30.glUniform1i(uMode, mode1i);
-        GLES30.glUniformMatrix4fv(uEyeViewMatrix, 1, false, eyeViewMatrix4fv, 0); // Allows shader to situate itself.
-        GLES30.glUniform1f(uTime, time1f);
 
         GLES30.glUniform2fv(uResolution, 1, resolution2fv, 0);
+        GLES30.glUniformMatrix4fv(uEyeViewMatrix, 1, false, eyeViewMatrix4fv, 0); // Allows shader to situate itself.
+        // TODO: Hook it back up, disconnected for now
         GLES30.glUniform3fv(uLightPosHandle, 1, lightPos3fv, 0);
+        GLES30.glUniform1f(uTime, time1f);
 
         SimpleGLUtils.checkGlErrorCE("Error assigning Raymarching Program values");
 
@@ -450,8 +466,16 @@ public class Geometry implements Renderable {
         for (int i = 0; i < eyeViewMatrix4fv.length; i++) this.eyeViewMatrix4fv[i] = eyeViewMatrix4fv[i];
     }
 
+    public void setLightPos3fv(float[] lightPos3fv) {
+        for (int i = 0; i < lightPos3fv.length; i++) this.lightPos3fv[i] = lightPos3fv[i];
+    }
+
     public void setTextureDataHandles(int[] textureDataHandles) {
         this.textureDataHandles = textureDataHandles;
+    }
+
+    public void setTime1f(float time1f) {
+        this.time1f = time1f;
     }
 
 /*
@@ -459,10 +483,6 @@ public class Geometry implements Renderable {
         this.mode1i = mode1i;
     }
 */
-
-    public void setLightPos3fv(float[] lightPos3fv) {
-        for (int i = 0; i < lightPos3fv.length; i++) this.lightPos3fv[i] = lightPos3fv[i];
-    }
 
     // NOTE: If changed on the fly, initGLProgram() needs to be called.
     public void setVertexShaderCode(String vertexShaderCode) {
@@ -472,9 +492,5 @@ public class Geometry implements Renderable {
     // NOTE: If changed on the fly, initGLProgram() needs to be called.
     public void setFragmentShaderCode(String fragmentShaderCode) {
         this.fragmentShaderCode = fragmentShaderCode;
-    }
-
-    public void setTime1f(float time1f) {
-        this.time1f = time1f;
     }
 }

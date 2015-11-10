@@ -124,8 +124,8 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
         String instancedFragmentShader = null;
 
         try {
-            instancedVertexShader = IOUtils.loadStringFromAsset(context, "shaders/_300.instanced.v1.vs");
-            instancedFragmentShader = IOUtils.loadStringFromAsset(context, "shaders/_300.default.v1.fs");
+            instancedVertexShader = IOUtils.loadStringFromAsset(context, "shaders/_300.instanced.v4.vs");
+            instancedFragmentShader = IOUtils.loadStringFromAsset(context, "shaders/_300.default.v4.fs");
         } catch (IOException e) {
             Timber.e(e,"Failed to load shaders from disk.");
             throw new RuntimeException(e);
@@ -288,6 +288,12 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
 //        Matrix.translateM(pMatrix, 0, cameraTranslation[0], cameraTranslation[1], cameraTranslation[2]);
 
         geometry.setResolution2fv(eye.getViewport().width, eye.getViewport().height);
+
+        geometry.setEyeViewMatrix4fv(eye.getEyeView());
+        // TODO: Re-enable light-pos and time?
+//        geometry.setLightPos3fv();
+//        geometry.setTime1f();
+
         geometry.update(pMatrix, vMatrix);
         geometry.draw();
     }
