@@ -9,11 +9,13 @@ import dagger.Module;
  */
 @Module(
     injects = {
-        FirebaseManager.class
+        FirebaseManager.class,
+        FileSystemManager.class
     },
     complete = false,
     library = true
 )
 public class DomainModule {
+
 
 }

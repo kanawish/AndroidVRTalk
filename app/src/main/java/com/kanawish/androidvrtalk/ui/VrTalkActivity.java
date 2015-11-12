@@ -14,6 +14,7 @@ import android.widget.TextView;
 import com.google.vrtoolkit.cardboard.CardboardActivity;
 import com.google.vrtoolkit.cardboard.CardboardView;
 import com.kanawish.androidvrtalk.R;
+import com.kanawish.androidvrtalk.domain.FileSystemManager;
 import com.kanawish.androidvrtalk.domain.FirebaseManager;
 import com.kanawish.androidvrtalk.domain.GeoScriptEventListener;
 import com.kanawish.androidvrtalk.domain.VertexShaderEventListener;
@@ -251,6 +252,8 @@ public class VrTalkActivity extends CardboardActivity {
     private ObjectGraph activityGraph;
 
     @Inject FirebaseManager firebaseManager;
+    @Inject FileSystemManager fileSystemManager;
+
     // The camera manager will be used to help us move the viewpoint in our scene, etc.
     @Inject CameraManager cameraManager;
     @Inject PipelineProgramBus programBus;
