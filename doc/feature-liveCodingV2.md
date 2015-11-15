@@ -2,9 +2,9 @@
 
 Problem: Firebase is a great component for prototyping the live-coding features of the app, but there's a few key drawbacks.
 
-- Need for internet connectivity
-- Proprietary
-- Latency (somewhat)
+- Need for internet connectivity.
+- Proprietary.
+- Latency. (somewhat)
 
 So, I wanted to explore using WiFi Direct and WebSockets. The two might not really be compatible, but both approaches seem interesting.
 
