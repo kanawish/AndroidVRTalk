@@ -244,7 +244,7 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
 
         // Set the camera position (aka View matrix)
         Matrix.setLookAtM(camera, 0,
-                0, 0, 5.5f, // CAMERA_Z, // used to be 4, // eye xyz
+                0, 0, 1f, // CAMERA_Z, // used to be 4, // eye xyz
                 0f, 0f, 0f, // center xyz
                 0f, 1.0f, 0.0f); // up vector xyz
 
@@ -274,7 +274,7 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
         float ratio = (float) eye.getViewport().width / eye.getViewport().height;
         // Setup pMatrix, our 'projection matrix'
         // left & right, bottom & top, near & far
-        Matrix.frustumM(pMatrix, 0, -ratio, ratio, -1, 1, 3, 70);
+        Matrix.frustumM(pMatrix, 0, -ratio, ratio, -1, 1, 3, 200);
 
         // Calculate the projection and view transformation
         float[] vMatrix = new float[16];

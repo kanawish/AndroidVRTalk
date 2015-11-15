@@ -1,6 +1,7 @@
 package com.kanawish.shaderlib.utils;
 
 import android.content.Context;
+import android.os.Environment;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -9,9 +10,10 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 
 /**
- * Created by etiennecaron on 2014-03-02.
+ *
  */
 public class IOUtils {
+
 	/**
 	 * http://stackoverflow.com/questions/326390/how-to-create-a-java-string-from-the-contents-of-a-file
 	 * but since we're on android...
@@ -23,6 +25,14 @@ public class IOUtils {
 		return readFile(new InputStreamReader(input));
 	}
 
+	/**
+	 * Will wrap the provided reader in a BufferedReader, and return the contents
+	 * of this string as a single String.
+	 *
+	 * @param inputReader
+	 * @return file contents
+	 * @throws IOException in case of issues.
+	 */
 	static public String readFile( Reader inputReader ) throws IOException {
 		BufferedReader bufferedReader = new BufferedReader( inputReader );
 		String         line = null;
@@ -37,5 +47,13 @@ public class IOUtils {
 		return stringBuilder.toString();
 	}
 
+    static public boolean isExternalStorageReadable() {
+        String state = Environment.getExternalStorageState();
+        if (Environment.MEDIA_MOUNTED.equals(state) ||
+                Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
+            return true;
+        }
+        return false;
+    }
 
 }

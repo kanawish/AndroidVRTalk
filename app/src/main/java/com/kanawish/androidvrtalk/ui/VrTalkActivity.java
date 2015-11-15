@@ -17,6 +17,7 @@ import com.kanawish.androidvrtalk.R;
 import com.kanawish.androidvrtalk.domain.FileSystemManager;
 import com.kanawish.androidvrtalk.domain.FirebaseManager;
 import com.kanawish.androidvrtalk.domain.GeoScriptEventListener;
+import com.kanawish.androidvrtalk.domain.ScriptManager;
 import com.kanawish.androidvrtalk.domain.VertexShaderEventListener;
 import com.kanawish.androidvrtalk.injection.Injector;
 import com.kanawish.common.InputData;
@@ -251,8 +252,7 @@ public class VrTalkActivity extends CardboardActivity {
 
     private ObjectGraph activityGraph;
 
-    @Inject FirebaseManager firebaseManager;
-    @Inject FileSystemManager fileSystemManager;
+    @Inject ScriptManager scriptManager;
 
     // The camera manager will be used to help us move the viewpoint in our scene, etc.
     @Inject CameraManager cameraManager;
@@ -353,7 +353,7 @@ public class VrTalkActivity extends CardboardActivity {
                 .observeOn(Schedulers.computation())
 //                .map(script -> GeometryManager.rhinoGeometryData(script))
 //                .map(script -> GeometryManager.duktapeGeometryData(script))
-                .map(script -> geometryManager.webviewGeometryData(script))
+                .map(geometryManager::webviewGeometryData)
                 .doOnError(throwable -> Timber.e(throwable, "GeometryScript failed to execute."))
                 .retryWhen(e -> e.flatMap( i -> Observable.timer(5000, TimeUnit.MILLISECONDS)))
                 .subscribe(data -> renderer.updateGeometryData(data));
