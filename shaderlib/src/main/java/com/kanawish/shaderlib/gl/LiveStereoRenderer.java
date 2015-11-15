@@ -19,7 +19,9 @@ package com.kanawish.shaderlib.gl;
 import android.content.Context;
 import android.opengl.GLES20;
 import android.opengl.Matrix;
+import android.os.Handler;
 import android.os.SystemClock;
+import android.text.AndroidCharacter;
 
 import com.google.vrtoolkit.cardboard.CardboardView;
 import com.google.vrtoolkit.cardboard.Eye;
@@ -28,6 +30,8 @@ import com.google.vrtoolkit.cardboard.Viewport;
 import com.kanawish.shaderlib.R;
 import com.kanawish.shaderlib.domain.CameraManager;
 import com.kanawish.shaderlib.domain.DebugData;
+import com.kanawish.shaderlib.domain.GeometryManager;
+import com.kanawish.shaderlib.domain.PipelineProgramBus;
 import com.kanawish.shaderlib.model.Geometry;
 import com.kanawish.shaderlib.model.GeometryData;
 import com.kanawish.shaderlib.utils.IOUtils;
@@ -41,9 +45,12 @@ import javax.microedition.khronos.egl.EGLConfig;
 
 import rx.Observable;
 import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.android.schedulers.HandlerScheduler;
 import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.observables.MathObservable;
+import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 import timber.log.Timber;
 
@@ -117,8 +124,8 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
         String instancedFragmentShader = null;
 
         try {
-            instancedVertexShader = IOUtils.loadStringFromAsset(context, "shaders/_300.instanced.v1.vs");
-            instancedFragmentShader = IOUtils.loadStringFromAsset(context, "shaders/_300.default.v1.fs");
+            instancedVertexShader = IOUtils.loadStringFromAsset(context, "shaders/_300.instanced.v4.vs");
+            instancedFragmentShader = IOUtils.loadStringFromAsset(context, "shaders/_300.default.v4.fs");
         } catch (IOException e) {
             Timber.e(e,"Failed to load shaders from disk.");
             throw new RuntimeException(e);
@@ -213,6 +220,7 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
 
         // OpenGL Pipeline configuration
         GLES20.glEnable(GLES20.GL_DEPTH_TEST);
+
     }
 
     @Override
@@ -236,9 +244,9 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
 
         // Set the camera position (aka View matrix)
         Matrix.setLookAtM(camera, 0,
-            0, 0, 5.5f, // CAMERA_Z, // used to be 4, // eye xyz
-            0f, 0f, 0f, // center xyz
-            0f, 1.0f, 0.0f); // up vector xyz
+                0, 0, 5.5f, // CAMERA_Z, // used to be 4, // eye xyz
+                0f, 0f, 0f, // center xyz
+                0f, 1.0f, 0.0f); // up vector xyz
 
         // We don't use this in our example, but it has uses.
         headTransform.getHeadView(headView, 0);
@@ -246,7 +254,7 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
         // Here we can set general frame attributes.
 
         // TODO: Make it dynamic.
-        geometry.setLightPos3fv(new float[] {0,20,-3});
+        geometry.setLightPos3fv(new float[]{0, 20, -3});
     }
 
     int frameCount = 0 ;
@@ -274,11 +282,18 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
         // TODO: Likely going to be a good idea to review the camera / model projection ops here.
         Matrix.multiplyMM(vMatrix, 0, eye.getEyeView(), 0, camera, 0);
 
-        Matrix.rotateM(pMatrix, 0, cameraRotation[1] * 0.05f, 1.0f, 0.0f, 0.0f);
-        Matrix.rotateM(pMatrix, 0, cameraRotation[0] * 0.05f, 0.0f, 1.0f, 0.0f);
-        Matrix.translateM(pMatrix, 0, cameraTranslation[0], cameraTranslation[1], cameraTranslation[2]);
+        // Temporarily disabling the touch-camera movement,
+//        Matrix.rotateM(pMatrix, 0, cameraRotation[1] * 0.05f, 1.0f, 0.0f, 0.0f);
+//        Matrix.rotateM(pMatrix, 0, cameraRotation[0] * 0.05f, 0.0f, 1.0f, 0.0f);
+//        Matrix.translateM(pMatrix, 0, cameraTranslation[0], cameraTranslation[1], cameraTranslation[2]);
 
         geometry.setResolution2fv(eye.getViewport().width, eye.getViewport().height);
+
+        geometry.setEyeViewMatrix4fv(eye.getEyeView());
+        // TODO: Re-enable light-pos and time?
+//        geometry.setLightPos3fv();
+//        geometry.setTime1f();
+
         geometry.update(pMatrix, vMatrix);
         geometry.draw();
     }
@@ -292,6 +307,7 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
         Timber.i("onRendererShutdown");
         debugOutputPublishSubject.onCompleted();
         fpsSubject.onCompleted();
+
         movingAverageSubscription.unsubscribe();
     }
 
@@ -303,6 +319,7 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
      * @return if data was queued or not.
      */
     public boolean updateGeometryData(GeometryData newGeometryData) {
+
         return geometry.queue(newGeometryData);
     }
 

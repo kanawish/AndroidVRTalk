@@ -8,6 +8,9 @@ precision mediump float;
 uniform bool uKv1;
 
 // From a full example found here: http://www.learnopengles.com/android-lesson-four-introducing-basic-texturing/
+uniform mat4 uMMatrix;
+uniform mat4 uVMatrix;
+uniform mat4 uPMatrix;
 
 uniform mat4 uMVPMatrix;       // A constant representing the combined model/view/projection matrix.
 uniform mat4 uMVMatrix;        // A constant representing the combined model/view matrix.
@@ -22,7 +25,7 @@ in vec3 aScaleHandle;
 in vec4 aColor;         // Per-vertex color information we will pass in.
 in vec4 aParametersHandle;
 
-out vec3 vPosition;        // This will be passed into the fragment shader.
+out vec4 vPosition;        // This will be passed into the fragment shader.
 out vec3 vNormal;          // This will be passed into the fragment shader.
 out vec2 vTexCoordinate;   // This will be passed into the fragment shader.
 
@@ -109,7 +112,7 @@ void main()
     // The position of the light in **eye space**. 
     // TODO: Parametrize
     vec3 u_LightPos = vec3(uMVMatrix * vec4(0.0,1.0,-1.0,0.0)); 
-    
+
     // Transform the vertex into eye space.
     vec3 modelViewVertex = vec3(uMVMatrix * t*r*aPosition);
     // Transform the normal's orientation into eye space.
@@ -133,5 +136,6 @@ void main()
 	// gl_Position is a special variable used to store the final position.
 	// Multiply the vertex by the matrix to get the final point in normalized 
 	// screen coordinates.		
+	vPosition = vec4(t*r*s*aPosition);
     gl_Position = uMVPMatrix * t*r*s*aPosition;
 }

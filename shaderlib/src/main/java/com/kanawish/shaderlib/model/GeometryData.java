@@ -23,6 +23,7 @@ public class GeometryData {
         public float[] s; // scale vec3f
         public float[] c; // color vec4f
         public float[] p; // params vec4f (These can be used for anything in the vector shader.)
+        public int[] m; // mode, intended to toggle between shader modes.
     }
 
     public List<Obj> objs;

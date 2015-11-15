@@ -1,5 +1,8 @@
 package com.kanawish.shaderlib.domain;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
 import rx.Observable;
 import rx.subjects.BehaviorSubject;
 import rx.subjects.Subject;
@@ -10,6 +13,7 @@ import rx.subjects.Subject;
  * Not even bothering splitting the model from the business logic yet.
  *
  */
+@Singleton
 public class CameraManager {
 
     public static class CameraData {
@@ -42,6 +46,10 @@ public class CameraManager {
         // Behavior will provide latest value and subsequent changes to subscribers.
         BehaviorSubject<CameraData> subject = BehaviorSubject.create();
         cameraBus = subject.toSerialized();
+    }
+
+    @Inject
+    public CameraManager() {
     }
 
     // Subscribe to the camera data bus via this method.

@@ -14,21 +14,20 @@ uniform mat4 uMVMatrix;        // A constant representing the combined model/vie
 
 in vec4 aPosition;      // Per-vertex position information we will pass in.
 in vec3 aNormal;        // Per-vertex normal information we will pass in.
+in vec4 aColor;         // Per-vertex color information we will pass in.
+in vec4 xColor;         // Per-vertex color information we will pass in.
 in vec2 aTexCoordinate; // Per-vertex texture coordinate information we will pass in.
+ 
 
 in vec3 aTranslationHandle;
 in vec3 aRotationHandle;
 in vec3 aScaleHandle;
-in vec4 aColor;         // Per-vertex color information we will pass in.
 in vec4 aParametersHandle;
 
 out vec3 vPosition;        // This will be passed into the fragment shader.
 out vec3 vNormal;          // This will be passed into the fragment shader.
-out vec2 vTexCoordinate;   // This will be passed into the fragment shader.
-
 out vec4 vColor;           // This will be passed into the fragment shader.
-out vec4 vParams;
-
+out vec2 vTexCoordinate;   // This will be passed into the fragment shader.
 
 mat4 s(vec3 s) {
     return mat4(
@@ -127,9 +126,8 @@ void main()
 	// Multiply the color by the illumination level. It will be interpolated 
 	// across the triangle.
     vColor = aColor * diffuse;
-    vParams = aParametersHandle ;
     // vColor = aColor * lambertFactor;
-
+  
 	// gl_Position is a special variable used to store the final position.
 	// Multiply the vertex by the matrix to get the final point in normalized 
 	// screen coordinates.		
