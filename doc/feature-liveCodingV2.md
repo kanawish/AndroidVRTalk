@@ -6,7 +6,23 @@ Problem: Firebase is a great component for prototyping the live-coding features 
 - Proprietary
 - Latency (somewhat)
 
-So, I want to explore using WiFi Direct and WebSockets. The two might not really be compatible, but both approaches seem interesting.
+So, I wanted to explore using WiFi Direct and WebSockets. The two might not really be compatible, but both approaches seem interesting.
+
+Further experiments ended up leading to adding offline ADB upload support, which is quick enough but also suffers from some latency.
+
+## Roadmap: 
+- [ ] Add Nearby pub-sub capability
+	- [ ] gulp.watch -> adb -> Nearby pub-sub
+- [ ] Add VRWorkDesk into project
+	- [ ] Make it runnable from the command line
+	- [ ] Write a HOW-TO (npm setup/install)
+	- [ ] Remove all credentials from that copy.
+- [x] Realtime *scripting* over Firebase
+	- [x] gulp + Browserify + gulp.watch
+	- [x] Rhino client execution
+	- [x] Upgrade to Chrome v8
+
+## Research links
 
 - [http://developer.android.com/reference/android/net/wifi/p2p/package-summary.html](http://developer.android.com/reference/android/net/wifi/p2p/package-summary.html)
 - [http://developer.android.com/guide/topics/connectivity/wifip2p.html](http://developer.android.com/guide/topics/connectivity/wifip2p.html)
@@ -57,13 +73,6 @@ NOTE:  *Actually, why bother? Nearby should be fine*
 	- Firebase
 
 Big difference now will be that we publish the javascript program for the geometry, instead of publishing the geometry data itself. That part should be possible thanks to Rhino + Browserify, and should become realtime thanks to Watchify.
-
-Roadmap: 
-
-- [x] Realtime *scripting* over Firebase
-	- [x] gulp + Browserify + gulp.watch
-	- [x] Rhino client execution
-	- [ ] Upgrade to Chrome v8
 
 ## Further notes and ideas
 

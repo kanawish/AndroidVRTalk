@@ -71,7 +71,7 @@ public class FileSystemManager implements ScriptManager {
         parentDirObserver = new FileObserver(file.getParent()) {
             @Override
             public void onEvent(int event, String path) {
-                if (event == FileObserver.CREATE) {
+                if (event == FileObserver.CREATE || event == FileObserver.CLOSE_WRITE) {
                     if(path.equals(GEO_JS)) {
                         geoFileObserver = watch(geoFilePath, bus::publishGeoScript);
                     } else if(path.equals(SHADER_VS)) {
@@ -122,7 +122,8 @@ public class FileSystemManager implements ScriptManager {
         try {
             InputStreamReader isr = new InputStreamReader(new FileInputStream(new File(filePath)));
             String content = IOUtils.readFile(isr);
-            processor.processScript(content);
+            // Quick-fix, added this check since I was getting events I did not expect (create empty, etc)
+            if( content != null && content.length() > 0 ) processor.processScript(content);
         } catch (FileNotFoundException e) {
             Timber.e(e, "Danger, Will Robinson.");
         } catch (IOException e) {
