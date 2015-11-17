@@ -125,6 +125,8 @@ public class GeometryManager {
 
     private static GeometryData parseGeometryDataJson(String result) {
         // Use Moshi to parse the data.
+        Timber.d("parseGeometryDataJson() called with");
+        Timber.d("%s", result);
         JsonAdapter<GeometryData> jsonAdapter = MOSHI.adapter(GeometryData.class);
         try {
             return jsonAdapter.fromJson(result);

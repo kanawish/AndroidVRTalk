@@ -1,6 +1,7 @@
 package com.kanawish.androidvrtalk.ui;
 
 import com.kanawish.androidvrtalk.AppModule;
+import com.kanawish.androidvrtalk.domain.DomainModule;
 
 import dagger.Module;
 

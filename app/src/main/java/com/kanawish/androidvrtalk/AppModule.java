@@ -2,6 +2,7 @@ package com.kanawish.androidvrtalk;
 
 import android.app.Application;
 
+import com.kanawish.androidvrtalk.domain.DomainModule;
 import com.kanawish.androidvrtalk.domain.FirebaseManager;
 import com.kanawish.androidvrtalk.ui.UiModule;
 
@@ -13,7 +14,8 @@ import dagger.Provides;
 @Module(
         includes = {
             UiModule.class,
-//        DataModule.class
+            DomainModule.class
+            //        DataModule.class
         },
         injects = {
             VrTalkApp.class,

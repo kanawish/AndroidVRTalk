@@ -32,7 +32,7 @@ import timber.log.Timber;
  * This will publish geoScript & shader events.
  */
 @Singleton
-public class FirebaseManager {
+public class FirebaseManager implements ScriptManager {
 
     public static final String GEO_SCRIPT = "geo_script";
     public static final String VERTEX_SHADER = "vertex_shader";
