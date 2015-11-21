@@ -26,7 +26,7 @@ ext {
     extBuildToolsVersion = "23.0.1";
     extSupportVersion = "23.0.1";
 
-    extMinSdkVersion = 22;
+    extMinSdkVersion = 19;
     extWearMinSdkVersion = 21;
     extTvMinSdkVersion = 21;
     extTargetSdkVersion = 23;

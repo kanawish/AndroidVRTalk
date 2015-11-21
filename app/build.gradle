@@ -29,7 +29,7 @@ android {
     defaultConfig {
         applicationId "com.kanawish.androidvrtalk"
 
-        minSdkVersion 22
+        minSdkVersion 19
         targetSdkVersion 23
 
         versionCode extVersionCode
