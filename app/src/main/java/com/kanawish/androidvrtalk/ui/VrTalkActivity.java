@@ -1,6 +1,8 @@
-package com.kanawish.androidvrtalk;
+package com.kanawish.androidvrtalk.ui;
 
 import android.os.Bundle;
+import android.os.Handler;
+import android.support.annotation.NonNull;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -11,20 +13,37 @@ import android.widget.TextView;
 
 import com.google.vrtoolkit.cardboard.CardboardActivity;
 import com.google.vrtoolkit.cardboard.CardboardView;
-import com.kanawish.androidvrtalk.domain.GeoEventListener;
-import com.kanawish.androidvrtalk.domain.ShaderEventListener;
+import com.kanawish.androidvrtalk.R;
+import com.kanawish.androidvrtalk.domain.FileSystemManager;
+import com.kanawish.androidvrtalk.domain.FirebaseManager;
+import com.kanawish.androidvrtalk.domain.GeoScriptEventListener;
+import com.kanawish.androidvrtalk.domain.ScriptManager;
+import com.kanawish.androidvrtalk.domain.VertexShaderEventListener;
+import com.kanawish.androidvrtalk.injection.Injector;
 import com.kanawish.common.InputData;
 import com.kanawish.common.InputDataBuilder;
 import com.kanawish.shaderlib.domain.CameraManager;
 import com.kanawish.shaderlib.domain.DebugData;
+import com.kanawish.shaderlib.domain.GeometryManager;
+import com.kanawish.shaderlib.domain.PipelineProgramBus;
 import com.kanawish.shaderlib.gl.LiveStereoRenderer;
-import com.kanawish.shaderlib.model.GeometryData;
-import com.kanawish.shaderlib.model.ShaderData;
+import com.kanawish.shaderlib.utils.IOUtils;
 
+
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
+
+import javax.inject.Inject;
 
 import butterknife.Bind;
+import butterknife.ButterKnife;
+import dagger.ObjectGraph;
+import rx.Observable;
+import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
+import rx.android.schedulers.HandlerScheduler;
 import rx.functions.Action1;
+import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 import timber.log.Timber;
 
@@ -112,7 +131,6 @@ CardboardView*--CardboardView.StereoRenderer
 
 @enduml
 
-
  */
 public class VrTalkActivity extends CardboardActivity {
 
@@ -196,7 +214,6 @@ public class VrTalkActivity extends CardboardActivity {
         }
     };
 
-
     @Bind(R.id.lline1)
     TextView lline1;
     @Bind(R.id.lline2)
@@ -219,49 +236,66 @@ public class VrTalkActivity extends CardboardActivity {
     @Bind(R.id.debugTextRight)
     LinearLayout debugTextRight;
 
-
     @Bind(R.id.fpsTextView)
     TextView fpsTextView;
 
     @Bind(R.id.ui_layout)
     RelativeLayout uiLayout;
 
-
     @Bind(R.id.cardboard_view)
     CardboardView cardboardView;
 
-    private ShaderEventListener vertexShaderEventListener;
-    private ShaderEventListener fragmentShaderEventListener;
-    private GeoEventListener geoEventListener;
+    private VertexShaderEventListener vertexShaderEventListener;
+    private VertexShaderEventListener fragmentShaderEventListener;
+    private GeoScriptEventListener geoEventListener;
 
+
+    private ObjectGraph activityGraph;
+
+    @Inject ScriptManager scriptManager;
+
+    // The camera manager will be used to help us move the viewpoint in our scene, etc.
+    @Inject CameraManager cameraManager;
+    @Inject PipelineProgramBus programBus;
+    @Inject GeometryManager geometryManager;
+
+    // TODO: Inject
     LiveStereoRenderer renderer;
 
+    private String geoWrapper;
 
-    // TODO: Add dagger 1 injection support. @Inject
-    CameraManager cameraManager;
+    // Subscriptions to the code updaters
+    private Subscription geoSub;
+    private Subscription vertexSub;
+    private Subscription fragSub;
 
 
     // UI / CONTROLS
-
     private GestureDetector gestureDetector;
 
+    @Override
+    public Object getSystemService(@NonNull String name) {
+        if (Injector.matchesService(name)) {
+            return activityGraph;
+        }
+        return super.getSystemService(name);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // todo: butterknife bind this?
+        ObjectGraph appGraph = Injector.obtain(getApplication());
+        appGraph.inject(this);
+        // Not really used yet, but added this to demonstrate best practice.
+        activityGraph = appGraph.plus(new ActivityModule(this));
+
         setContentView(R.layout.vr_talk_ui);
-        butterknife.ButterKnife.bind(this);
+        ButterKnife.bind(this);
 
-        // The camera manager will be used to help us move the viewpoint in our scene, etc.
-
-        cameraManager = new CameraManager();
-
-        // Configure the cardboardView. There's a lot of available options here...
-        // TODO: Try to demo and explain some more of these in the talk.
-        cardboardView.setVRModeEnabled(true);
-        cardboardView.setDistortionCorrectionEnabled(false);
+        // Configure the cardboardView. There's a lot of available options, here's two.
+        cardboardView.setVRModeEnabled(false);
+        cardboardView.setDistortionCorrectionEnabled(false); // FIXME: Currently broken
 
         // Create the renderer that does the actual drawing.
         renderer = new LiveStereoRenderer(this,cameraManager);
@@ -272,6 +306,15 @@ public class VrTalkActivity extends CardboardActivity {
 
         // This will subscribe to a head tracking info stream, we overlay it to help debug scenes.
         subscribeToDebugPublisher(renderer.getDebugOutputPublishSubject());
+
+        // Load the rhino geoWrapper from local storage.
+        try {
+            geoWrapper = IOUtils.loadStringFromAsset(this, "js/rhinoWrapper.js");
+        } catch (IOException e) {
+            Timber.e(e, "Failed to load 'js/rhinoWrapper.js'");
+            throw new RuntimeException("Critical failure, app is missing 'rhinoWrapper.js' asset.");
+        }
+
 
         // TODO: An explanatory overlay would be nice, like in some examples.
 
@@ -292,71 +335,42 @@ public class VrTalkActivity extends CardboardActivity {
     public void onStart() {
         super.onStart();
 
-        // TODO: We used to use Firebase, abstract it for talk, or simply implement credential config cleanly.
-        // Geometry Data
-        geoEventListener = new GeoEventListener() {
-            public void onDataChange(GeometryData value) {
-                Timber.d("GeoData received.");
-                // NOTE: Between shaders and geo, I have 2 queueing mechanisms here, we'll want only the 1...
-                // I believe the one I use with fragments could cause race conditions (not sure), so I should try to
-                // come up with a hybrid between geo and shader queuing? Or just validate if there's a problem or not.
-                final boolean succeeded = renderer.updateGeometryData(value);
-                if( !succeeded ) Timber.w("Failed to queue updated GeometryData.");
-            }
-
-            public void onCancelled(String errorMsg) {
-                Timber.d(errorMsg);
-            }
-        };
-//        mFirebaseRef.getRoot().child("geoData").addValueEventListener(geoEventListener);
-
-        // Vertex Shader Data
-        vertexShaderEventListener = new ShaderEventListener() {
-            public void onDataChange(final ShaderData model) {
-                Timber.d("Vector Shader code changed.");
-
-                // TODO: Debounce.
-                getCardboardView().queueEvent(new Runnable() {
-                    @Override
-                    public void run() {
-                        renderer.updateVertexShader(model.getCode());
-                    }
-                });
-            }
-
-            public void onCancelled(String errorMsg) {
-                Timber.d(errorMsg);
-            }
-        };
-//        mFirebaseRef.getRoot().child("vertex_shader").addValueEventListener(vertexShaderEventListener);
-
-        // Fragment Shader Data
-        fragmentShaderEventListener = new ShaderEventListener() {
-            public void onDataChange(final ShaderData model) {
-                Timber.d("Fragment Shader code changed.");
-
-                // TODO: Debounce.
-                getCardboardView().queueEvent(new Runnable() {
-                    @Override
-                    public void run() {
-                        renderer.updateFragmentShader(model.getCode());
-                    }
-                });
-            }
-
-            public void onCancelled(String errorMsg) {
-                Timber.d(errorMsg);
-            }
-        };
-//        mFirebaseRef.getRoot().child("fragment_shader").addValueEventListener(fragmentShaderEventListener);
-
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+
+        initProgramBus();
+
         renderer.play();
     }
+
+    public void initProgramBus() {
+        geoSub = programBus
+                .geoScriptBus()
+                .map(script -> String.format(geoWrapper, script))
+                .observeOn(Schedulers.computation())
+//                .map(script -> GeometryManager.rhinoGeometryData(script))
+//                .map(script -> GeometryManager.duktapeGeometryData(script))
+                .map(geometryManager::webviewGeometryData)
+                .doOnError(throwable -> Timber.e(throwable, "GeometryScript failed to execute."))
+                .retryWhen(e -> e.flatMap( i -> Observable.timer(5000, TimeUnit.MILLISECONDS)))
+                .subscribe(data -> renderer.updateGeometryData(data));
+
+        vertexSub = programBus
+                .vertexShaderBus()
+                .doOnNext(shader -> Timber.d("Vector Shader code changed."))
+                .observeOn(HandlerScheduler.from(new Handler()))
+                .subscribe(shader -> cardboardView.queueEvent(() -> renderer.updateVertexShader(shader)));
+
+        fragSub = programBus
+                .fragmentShaderBus()
+                .doOnNext(shader -> Timber.d("Fragment Shader code changed."))
+                .observeOn(HandlerScheduler.from(new Handler()))
+                .subscribe(shader -> cardboardView.queueEvent(() -> renderer.updateFragmentShader(shader)));
+    }
+
 
     @Override
     protected void onPause() {
@@ -365,11 +379,18 @@ public class VrTalkActivity extends CardboardActivity {
     }
 
     public void onStop() {
-        super.onStop();
-//        mFirebaseRef.getRoot().child("fragment_shader").removeEventListener(fragmentShaderEventListener);
-//        mFirebaseRef.getRoot().child("vertex_shader").removeEventListener(vertexShaderEventListener);
-//        mFirebaseRef.getRoot().child("geoData").removeEventListener(geoEventListener);
 
+        geoSub.unsubscribe();
+        vertexSub.unsubscribe();
+        fragSub.unsubscribe();
+
+        super.onStop();
+    }
+
+    @Override
+    protected void onDestroy() {
+        activityGraph = null;
+        super.onDestroy();
     }
 
     // Moved this out of the onCreate() method to avoid confusing people new to Rx.

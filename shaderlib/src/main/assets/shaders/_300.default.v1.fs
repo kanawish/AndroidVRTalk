@@ -19,6 +19,7 @@ uniform sampler2D uTexture2;
 uniform sampler2D uTexture3;
 
 in vec4 vColor;
+in vec4 vParams;
 
 out vec4 out_color;
 

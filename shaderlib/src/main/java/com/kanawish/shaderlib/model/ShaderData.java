@@ -1,8 +1,8 @@
 package com.kanawish.shaderlib.model;
 
 /**
- * Created by kanawish on 15-08-05.
- */ // TODO: Move all this to a "Manager"
+ *
+ */
 public class ShaderData {
     String code;
 

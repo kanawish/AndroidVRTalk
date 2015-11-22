@@ -4,6 +4,9 @@ Code samples to accompany my VR Talk
 
 ## Talk notes / links
 
+### YouTube
+- [Talk @ Big Android BBQ 2015](https://youtu.be/bi4YTryqY-Q?list=PLWz5rJ2EKKc_HyE1QX9heAgTPdAMqc50z) [Includes OpenGL Pipeline config]
+
 ### OpenGL Theory
 - https://developer.android.com/about/versions/android-5.0.html
 - **Recommended** https://developer.android.com/guide/topics/graphics/opengl.html
@@ -25,3 +28,4 @@ https://developer.apple.com/library/ios/documentation/3DDrawing/Conceptual/OpenG
 
 ### Shaders
 - http://www.clicktorelease.com/blog/vertex-displacement-noise-3d-webgl-glsl-three-js
+- Skybox https://www.shadertoy.com/view/lt2SR1

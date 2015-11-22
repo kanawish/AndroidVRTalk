@@ -82,15 +82,11 @@ public class Geometry implements Renderable {
     private FloatBuffer rotations;
     private FloatBuffer scales;
     private FloatBuffer parameters;
+//    private IntBuffer modes;
 
     // TODO: Implement
     private FloatBuffer colors; // Might want multiple?
     private FloatBuffer textureCoords; // Might want multiple?
-
-    // **** Matrices
-//    private float[] camera = new float[16]; // Outside our scope.
-//    private float[] view = new float[16]; // Should be passed in. (actually is...)
-    private float[] modelMatrix = new float[16]; // Our model's transformation.
 
     // **** Program
     private String vertexShaderCode;
@@ -98,6 +94,9 @@ public class Geometry implements Renderable {
     private int programHandle;
 
     // **** Handles
+    private int uMMatrixHandle;
+    private int uVMatrixHandle;
+    private int uPMatrixHandle;
     private int uMVMatrixHandle;
     private int uMVPMatrixHandle;
 
@@ -107,10 +106,8 @@ public class Geometry implements Renderable {
     private int aTranslationHandle;
     private int aRotationHandle;
     private int aScaleHandle;
-    private int aParametersHandle; // We assume 4 extra params for vector shader would be enough for the moment.
-
-    // TODO: Implement
     private int aColorHandle;
+    private int aParametersHandle; // We assume 4 extra params for vector shader would be enough for the moment.
 
     private int aTextureCoordinateHandle;
 
@@ -120,29 +117,29 @@ public class Geometry implements Renderable {
     private int uLightPosHandle;
 
     private int uTime;
-    private int uMode;
-
-    private int uColor;
 
     private int [] uTextureUniformHandles = new int [8]; // Used to pass in the texture.
 
     private int [] textureDataHandles; // Handle to our texture data. (See loader helper method)
 
-    // **** Actual data to be passed via handles
+    // **** Matrices
+//    private float[] camera = new float[16]; // Outside our scope.
+//    private float[] view = new float[16]; // Should be passed in. (actually is...)
+    private float[] modelMatrix4fv = new float[16]; // Our model's transformation.
+    private float[] viewMatrix4fv = new float[16]; // Our view matrix (camera basically)
+    private float[] projectionMatrix4fv = new float[16]; // Our perspective transformation.
     private float[] modelViewMatrix4fv = new float[16];
-
     private float[] modelViewProjectionMatrix4fv = new float[16];
-    private int mode1i;
+//    private int mode1i;
 
-    private float[] eyeViewMatrix4fv = new float[16];
-    // In seconds, initialized to 0 on first call to draw.
-    float time1f = -1;
     private float[] resolution2fv = new float[] {256,256}; // Default value to help if we forget to assign this.
-
+    private float[] eyeViewMatrix4fv = new float[16];
     private float[] lightPos3fv = new float[3];
+    float time1f = -1; // In seconds, initialized to 0 on first call to draw.
 
-    // Model transforms
-    private float[] modelTranslation = new float[]{0, -1f, -1.0f};
+
+    // Model transforms (unused right now, since each iteration has it's own transforms.)
+    private float[] modelTranslation = new float[]{0, 0, 0};
     private float[] modelRotation = new float[]{0, 0, 0};
     private float modelScale = 1.0f ;
 
@@ -186,12 +183,12 @@ public class Geometry implements Renderable {
         normals = SimpleGLUtils.createFloatBuffer(DefaultModels.CUBE_NORMALS);
 
         instancedCount = 1;
+
         translations = SimpleGLUtils.createFloatBuffer(new float[]{0f, 0f, 0f});
         rotations = SimpleGLUtils.createFloatBuffer(new float[]{0f, 0f, 0f});
         scales = SimpleGLUtils.createFloatBuffer(new float[]{1f, 1f, 1f});
-        parameters = SimpleGLUtils.createFloatBuffer(new float[]{0f, 0f, 0f, 0f});
-
         colors = SimpleGLUtils.createFloatBuffer(new float[]{1f, 0f, 1f, 1f});
+        parameters = SimpleGLUtils.createFloatBuffer(new float[]{0f, 0f, 0f, 1f});
     }
 
 
@@ -209,6 +206,10 @@ public class Geometry implements Renderable {
     public void initHandles() {
 
         // program uniform handles (equivalent to global constants) 
+        uMMatrixHandle = GLES30.glGetUniformLocation(programHandle, "uMMatrix");
+        uVMatrixHandle = GLES30.glGetUniformLocation(programHandle, "uVMatrix");
+        uPMatrixHandle = GLES30.glGetUniformLocation(programHandle, "uPMatrix");
+
         uMVMatrixHandle = GLES30.glGetUniformLocation(programHandle, "uMVMatrix");
         uMVPMatrixHandle = GLES30.glGetUniformLocation(programHandle, "uMVPMatrix");
 
@@ -222,9 +223,8 @@ public class Geometry implements Renderable {
         aTranslationHandle = GLES30.glGetAttribLocation(programHandle, "aTranslationHandle");
         aRotationHandle = GLES30.glGetAttribLocation(programHandle, "aRotationHandle");
         aScaleHandle = GLES30.glGetAttribLocation(programHandle, "aScaleHandle");
-        // TODO: Implement. Likely will want them 'per-instance' as well..
-        aColorHandle = GLES30.glGetAttribLocation(programHandle, "aColor");
 
+        aColorHandle = GLES30.glGetAttribLocation(programHandle, "aColor");
         aParametersHandle = GLES30.glGetAttribLocation(programHandle, "aParametersHandle");
 
         aTextureCoordinateHandle = GLES30.glGetAttribLocation(programHandle, "aTexCoordinate");
@@ -237,7 +237,7 @@ public class Geometry implements Renderable {
         uLightPosHandle = GLES30.glGetUniformLocation(programHandle, "uLightPos");
         uTime = GLES30.glGetUniformLocation(programHandle, "uTime");
 
-        uMode = GLES30.glGetUniformLocation(programHandle, "uMode");
+//        uMode = GLES30.glGetUniformLocation(programHandle, "uMode");
 
         for( int i = 0 ; i < textureUnits.length ; i++ ) {
             uTextureUniformHandles[i] = GLES30.glGetUniformLocation(programHandle, "uTexture"+i);
@@ -268,7 +268,7 @@ public class Geometry implements Renderable {
      * Should be called before each 'draw()'
      */
     @Override
-    public void update(float[] perspectiveMatrix, float[] viewMatrix) {
+    public void update(float[] projectionMatrix, float[] viewMatrix) {
 
         // Once every X updates.
         // TODO: Come up with something better re: update cycle.
@@ -277,17 +277,20 @@ public class Geometry implements Renderable {
         updateTime();
 
         // Object first appears directly in front of user.
-        Matrix.setIdentityM(modelMatrix, 0);
-        Matrix.translateM(modelMatrix, 0, modelTranslation[0], modelTranslation[1], modelTranslation[2]);
+        Matrix.setIdentityM(modelMatrix4fv, 0);
+        Matrix.translateM(modelMatrix4fv, 0, modelTranslation[0], modelTranslation[1], modelTranslation[2]);
         // TODO: Probably doing this wrong, fix this.
-        Matrix.rotateM(modelMatrix, 0, modelRotation[0], 1.0f, 0.0f, 0.0f);
-        Matrix.rotateM(modelMatrix, 0, modelRotation[1], 0.0f, 1.0f, 0.0f);
-        Matrix.rotateM(modelMatrix, 0, modelRotation[2], 0.0f, 0.0f, 1.0f);
-        Matrix.scaleM(modelMatrix,0,modelScale,modelScale,modelScale);
+        Matrix.rotateM(modelMatrix4fv, 0, modelRotation[0], 1.0f, 0.0f, 0.0f);
+        Matrix.rotateM(modelMatrix4fv, 0, modelRotation[1], 0.0f, 1.0f, 0.0f);
+        Matrix.rotateM(modelMatrix4fv, 0, modelRotation[2], 0.0f, 0.0f, 1.0f);
+        Matrix.scaleM(modelMatrix4fv, 0, modelScale, modelScale, modelScale);
 
-        Matrix.multiplyMM(modelViewMatrix4fv, 0, viewMatrix, 0, modelMatrix, 0);
-        Matrix.multiplyMM(modelViewProjectionMatrix4fv, 0, perspectiveMatrix, 0, modelViewMatrix4fv, 0);
-//        Matrix.multiplyMM(modelViewProjectionMatrix4fv, 0, perspectiveMatrix, 0, modelMatrix, 0);
+        viewMatrix4fv = viewMatrix ;
+        projectionMatrix4fv = projectionMatrix ;
+
+        Matrix.multiplyMM(modelViewMatrix4fv, 0, viewMatrix4fv, 0, modelMatrix4fv, 0);
+        Matrix.multiplyMM(modelViewProjectionMatrix4fv, 0, projectionMatrix4fv, 0, modelViewMatrix4fv, 0);
+//        Matrix.multiplyMM(modelViewProjectionMatrix4fv, 0, perspectiveMatrix, 0, modelMatrix4fv, 0);
 
         // Ready for draw() call.
     }
@@ -299,6 +302,7 @@ public class Geometry implements Renderable {
         // Create new buffers for new geometry data.
         final GeometryData data = dataQueue.poll();
         if( data != null ) {
+            // TODO: Must support multiple objects.
             final GeometryData.Obj obj = data.objs.get(0);
             updateBuffers(obj);
         }
@@ -316,6 +320,7 @@ public class Geometry implements Renderable {
         scales = null;
         colors = null;
         parameters = null;
+//        modes = null;
 
         if (obj.i != null) {
             instancedCount = obj.i.instancedCount;
@@ -324,6 +329,7 @@ public class Geometry implements Renderable {
             if (obj.i.s != null) scales = SimpleGLUtils.createFloatBuffer(obj.i.s);
             if (obj.i.c != null) colors = SimpleGLUtils.createFloatBuffer(obj.i.c);
             if (obj.i.p != null) parameters = SimpleGLUtils.createFloatBuffer(obj.i.p);
+//            if (obj.i.m != null) modes = SimpleGLUtils.createIntBuffer(obj.i.m);
         }
     }
 
@@ -359,7 +365,13 @@ public class Geometry implements Renderable {
         SimpleGLUtils.checkGlErrorRTE("Error on glUseProgram()"); // Extra check, this spot is sensitive.
 
         // Model/View/Projection Matrix assignments
-        // TODO: Add the model as well, to help with lighting.
+        GLES30.glUniformMatrix4fv(uMMatrixHandle, 1, false, modelMatrix4fv, 0);
+        SimpleGLUtils.checkGlErrorRTE("Error on uMMatrixHandle"); // Extra check, this spot is sensitive.
+        GLES30.glUniformMatrix4fv(uVMatrixHandle, 1, false, viewMatrix4fv, 0);
+        SimpleGLUtils.checkGlErrorRTE("Error on uVMatrixHandle"); // Extra check, this spot is sensitive.
+        GLES30.glUniformMatrix4fv(uPMatrixHandle, 1, false, projectionMatrix4fv, 0);
+        SimpleGLUtils.checkGlErrorRTE("Error on uPMatrixHandle"); // Extra check, this spot is sensitive.
+
         GLES30.glUniformMatrix4fv(uMVMatrixHandle, 1, false, modelViewMatrix4fv, 0);
         SimpleGLUtils.checkGlErrorRTE("Error on uMVMatrixHandle"); // Extra check, this spot is sensitive.
         GLES30.glUniformMatrix4fv(uMVPMatrixHandle, 1, false, modelViewProjectionMatrix4fv, 0); // Apply the projection and view transformation
@@ -377,12 +389,13 @@ public class Geometry implements Renderable {
         SimpleGLUtils.checkGlErrorCE("Error assigning / binding textures");
 
         // More 'Fragment shader specific' assignments
-        GLES30.glUniform1i(uMode, mode1i);
-        GLES30.glUniformMatrix4fv(uEyeViewMatrix, 1, false, eyeViewMatrix4fv, 0); // Allows shader to situate itself.
-        GLES30.glUniform1f(uTime, time1f);
+//        GLES30.glUniform1i(uMode, mode1i);
 
         GLES30.glUniform2fv(uResolution, 1, resolution2fv, 0);
+        GLES30.glUniformMatrix4fv(uEyeViewMatrix, 1, false, eyeViewMatrix4fv, 0); // Allows shader to situate itself.
+        // TODO: Hook it back up, disconnected for now
         GLES30.glUniform3fv(uLightPosHandle, 1, lightPos3fv, 0);
+        GLES30.glUniform1f(uTime, time1f);
 
         SimpleGLUtils.checkGlErrorCE("Error assigning Raymarching Program values");
 
@@ -453,17 +466,23 @@ public class Geometry implements Renderable {
         for (int i = 0; i < eyeViewMatrix4fv.length; i++) this.eyeViewMatrix4fv[i] = eyeViewMatrix4fv[i];
     }
 
+    public void setLightPos3fv(float[] lightPos3fv) {
+        for (int i = 0; i < lightPos3fv.length; i++) this.lightPos3fv[i] = lightPos3fv[i];
+    }
+
     public void setTextureDataHandles(int[] textureDataHandles) {
         this.textureDataHandles = textureDataHandles;
     }
 
+    public void setTime1f(float time1f) {
+        this.time1f = time1f;
+    }
+
+/*
     public void setMode1i(int mode1i) {
         this.mode1i = mode1i;
     }
-
-    public void setLightPos3fv(float[] lightPos3fv) {
-        for (int i = 0; i < lightPos3fv.length; i++) this.lightPos3fv[i] = lightPos3fv[i];
-    }
+*/
 
     // NOTE: If changed on the fly, initGLProgram() needs to be called.
     public void setVertexShaderCode(String vertexShaderCode) {
@@ -473,9 +492,5 @@ public class Geometry implements Renderable {
     // NOTE: If changed on the fly, initGLProgram() needs to be called.
     public void setFragmentShaderCode(String fragmentShaderCode) {
         this.fragmentShaderCode = fragmentShaderCode;
-    }
-
-    public void setTime1f(float time1f) {
-        this.time1f = time1f;
     }
 }
