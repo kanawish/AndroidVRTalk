@@ -1,0 +1,37 @@
+{
+  "name": "vr-workdesk",
+  "version": "1.0.0",
+  "description": "Series of scripting tools that allow live updating on remote viewers.",
+  "main": "gulpfile.js",
+  "dependencies": {
+    "bower": "^1.6.5",
+    "firebase": "^2.3.1",
+    "gulp": "^3.9.0",
+    "gulp-sourcemaps": "^1.6.0",
+    "jquery": "^2.1.4",
+    "lodash.assign": "^3.2.0",
+    "rx": "^4.0.6",
+    "sprintf-js": "^1.0.3",
+    "vinyl-buffer": "^1.0.0",
+    "vinyl-source-stream": "^1.1.0",
+    "watchify": "^3.5.0",
+    "del": "^2.1.0",
+    "gulp-shell": "^0.5.1",
+    "run-sequence": "^1.1.4"
+  },
+  "devDependencies": {
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://kanawish@github.com/kanawish/VrWorkdesk.git"
+  },
+  "author": "Etienne Caron",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kanawish/VrWorkdesk/issues"
+  },
+  "homepage": "https://github.com/kanawish/VrWorkdesk#readme"
+}
