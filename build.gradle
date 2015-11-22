@@ -32,8 +32,8 @@ ext {
     extTargetSdkVersion = 23;
 
     // TODO: Make this more granular, see u2020 for reference.
-    extVersionCode = 2;
-    extVersionName = "1.0.1";
+    extVersionCode = 103;
+    extVersionName = "1.0.3";
 
     def Properties props = new Properties();
 
