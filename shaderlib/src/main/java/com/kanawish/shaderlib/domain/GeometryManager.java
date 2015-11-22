@@ -41,6 +41,9 @@ public class GeometryManager {
 
     // TODO: Implement, use injection, etc.
     public final void initWebview(Context context) {
+        // We want Chrome dev-tools debugging capabilities.
+        WebView.setWebContentsDebuggingEnabled(true);
+
         webView = new WebView(context);
 
         // Optional

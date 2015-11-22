@@ -34,6 +34,7 @@ import com.kanawish.shaderlib.domain.GeometryManager;
 import com.kanawish.shaderlib.domain.PipelineProgramBus;
 import com.kanawish.shaderlib.model.Geometry;
 import com.kanawish.shaderlib.model.GeometryData;
+import com.kanawish.shaderlib.model.GeometryRenderer;
 import com.kanawish.shaderlib.utils.IOUtils;
 import com.kanawish.shaderlib.utils.ShaderCompileException;
 import com.kanawish.shaderlib.utils.SimpleGLUtils;
@@ -100,7 +101,7 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
 
 
     // SECTION: 3d Model Entities
-    private Geometry geometry;
+    private GeometryRenderer geometry;
 
 
     // SECTION: GL States
@@ -131,13 +132,12 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
             throw new RuntimeException(e);
         }
 
-        geometry = new Geometry(instancedVertexShader,instancedFragmentShader);
+        geometry = new GeometryRenderer(instancedVertexShader,instancedFragmentShader);
 
         this.cameraManager = cameraManager;
         initCameraManager(cameraManager);
 
         initDebugDataPublisher();
-
     }
 
     private void initDebugDataPublisher() {
@@ -319,7 +319,6 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
      * @return if data was queued or not.
      */
     public boolean updateGeometryData(GeometryData newGeometryData) {
-
         return geometry.queue(newGeometryData);
     }
 

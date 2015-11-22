@@ -7,10 +7,12 @@ import android.os.SystemClock;
 import com.kanawish.shaderlib.defaults.DefaultShaders;
 import com.kanawish.shaderlib.utils.ShaderCompileException;
 import com.kanawish.shaderlib.utils.SimpleGLUtils;
-import com.kanawish.shaderlib.defaults.DefaultModels;
 
 import java.nio.FloatBuffer;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
+
+import rx.Observable;
 
 /**
  * Created by kanawish on 2015-07-09.
@@ -30,35 +32,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * - Remove the / 3 on the vertex count.
  * - Any badly ordered or badly 'scoped' pipeline commands will bork it.
  *
-
- TODO: Complete this UML, see if it's valuable.
-
- @startuml
-
- class StereoRenderer {
- +onRendererShutdown()
- +onSurfaceChanged(width, height)
- +onSurfaceCreated(config)
- +onNewFrame(headTransform)
- +onDrawEye(eye)
- +onFinishFrame(viewport)
- }
-
- StereoRenderer *-- Geometry
- class Geometry {
-     +initGlProgram()
-     +initBuffers()
-     +assignGLProgram()
-     +initHandlers()
-     +draw()
-     +setVertexShaderCode()
-     +setFragmentShaderCode()
- }
-
- @enduml
-
  */
-public class Geometry implements Renderable {
+public class GeometryRenderer implements Renderable {
 
     // Only making a map for 8 units for now.
     private static final int [] textureUnits = {
@@ -72,20 +47,7 @@ public class Geometry implements Renderable {
         GLES30.GL_TEXTURE7,
     };
 
-    // **** Buffers
-    private int vertexCount = 0 ;
-    private FloatBuffer vertices;
-    private FloatBuffer normals;
-    // NOTE: Per-instance float buffers. See draw() for details.
-    private int instancedCount = 1 ;
-    private FloatBuffer translations;
-    private FloatBuffer rotations;
-    private FloatBuffer scales;
-    private FloatBuffer parameters;
-//    private IntBuffer modes;
-
     // TODO: Implement
-    private FloatBuffer colors; // Might want multiple?
     private FloatBuffer textureCoords; // Might want multiple?
 
     // **** Program
@@ -153,13 +115,14 @@ public class Geometry implements Renderable {
 
     // Recorded on first call to draw, used to calculate future values of 'time' above.
     long systemStartTime = SystemClock.elapsedRealtime();
+    private List<GeometryBufferData> geoInstances;
 
-    public Geometry() {
+    public GeometryRenderer() {
         this.vertexShaderCode = DefaultShaders.BACKUP_VERTEX_SHADER;
         this.fragmentShaderCode = DefaultShaders.BACKUP_FRAGMENT_SHADER;
     }
 
-    public Geometry(String vertexShaderCode, String fragmentShaderCode) {
+    public GeometryRenderer(String vertexShaderCode, String fragmentShaderCode) {
         this.vertexShaderCode = vertexShaderCode;
         this.fragmentShaderCode = fragmentShaderCode;
     }
@@ -177,20 +140,8 @@ public class Geometry implements Renderable {
 
     @Override
     public void initBuffers() {
-        // Vertices
-        vertexCount = DefaultModels.CUBE_COORDS.length / 3;
-        vertices = SimpleGLUtils.createFloatBuffer(DefaultModels.CUBE_COORDS);
-        normals = SimpleGLUtils.createFloatBuffer(DefaultModels.CUBE_NORMALS);
-
-        instancedCount = 1;
-
-        translations = SimpleGLUtils.createFloatBuffer(new float[]{0f, 0f, 0f});
-        rotations = SimpleGLUtils.createFloatBuffer(new float[]{0f, 0f, 0f});
-        scales = SimpleGLUtils.createFloatBuffer(new float[]{1f, 1f, 1f});
-        colors = SimpleGLUtils.createFloatBuffer(new float[]{1f, 0f, 1f, 1f});
-        parameters = SimpleGLUtils.createFloatBuffer(new float[]{0f, 0f, 0f, 1f});
+        // None in here for now.
     }
-
 
     /**
      * TODO: Programs should be managed separately from models.
@@ -270,7 +221,7 @@ public class Geometry implements Renderable {
     @Override
     public void update(float[] projectionMatrix, float[] viewMatrix) {
 
-        // Once every X updates.
+        // Poll every 60 calls.
         // TODO: Come up with something better re: update cycle.
         if ((updateCount++ % 60) == 0) updateGeometryData();
 
@@ -302,35 +253,12 @@ public class Geometry implements Renderable {
         // Create new buffers for new geometry data.
         final GeometryData data = dataQueue.poll();
         if( data != null ) {
-            // TODO: Must support multiple objects.
-            final GeometryData.Obj obj = data.objs.get(0);
-            updateBuffers(obj);
+            geoInstances = Observable
+                .from(data.objs)
+                .map(geoObj -> new GeometryBufferData(geoObj))
+                .toList().toBlocking().first();
         }
-        // New buffers are done, they'll be fed into OpenGL at the next draw() call.
-    }
-
-    private void updateBuffers(GeometryData.Obj obj) {
-        vertexCount = obj.v.length/3; // NOTE: Should always be == to n.length/3, but not enforcing for now.
-        vertices = SimpleGLUtils.createFloatBuffer(obj.v);
-        normals = SimpleGLUtils.createFloatBuffer(obj.n);
-
-        instancedCount = 1; // There's always at least one thing.
-        translations = null; // Instance vars are optional.
-        rotations = null;
-        scales = null;
-        colors = null;
-        parameters = null;
-//        modes = null;
-
-        if (obj.i != null) {
-            instancedCount = obj.i.instancedCount;
-            if (obj.i.t != null) translations = SimpleGLUtils.createFloatBuffer(obj.i.t);
-            if (obj.i.r != null) rotations = SimpleGLUtils.createFloatBuffer(obj.i.r);
-            if (obj.i.s != null) scales = SimpleGLUtils.createFloatBuffer(obj.i.s);
-            if (obj.i.c != null) colors = SimpleGLUtils.createFloatBuffer(obj.i.c);
-            if (obj.i.p != null) parameters = SimpleGLUtils.createFloatBuffer(obj.i.p);
-//            if (obj.i.m != null) modes = SimpleGLUtils.createIntBuffer(obj.i.m);
-        }
+        // New geoInstances are ready, they'll be fed into OpenGL at the next draw() call.
     }
 
     private void updateTime() {
@@ -343,23 +271,8 @@ public class Geometry implements Renderable {
         }
     }
 
-    public void simpleDraw() {
-        GLES30.glUseProgram(programHandle);
-
-        // These uniforms are used in the vertex shader to plac...
-        GLES30.glUniformMatrix4fv(uMVMatrixHandle, 1, false, modelViewMatrix4fv, 0);
-        GLES30.glUniformMatrix4fv(uMVPMatrixHandle, 1, false, modelViewProjectionMatrix4fv, 0);
-
-        // NOTE: Here we assign vertex byte buffer data to attributes.
-        GLES30.glVertexAttribPointer(aPositionHandle, 3, GLES30.GL_FLOAT, false, 0, vertices);
-        GLES30.glVertexAttribPointer(aNormalHandle, 3, GLES30.GL_FLOAT, false, 0, normals);
-
-        GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 3);
-    }
-
-    @Override
     public void draw() {
-
+        // Common code
         SimpleGLUtils.checkGlErrorRTE("beginning of draw"); // Extra check, this spot is sensitive.
         GLES30.glUseProgram(programHandle);
         SimpleGLUtils.checkGlErrorRTE("Error on glUseProgram()"); // Extra check, this spot is sensitive.
@@ -388,9 +301,6 @@ public class Geometry implements Renderable {
         }
         SimpleGLUtils.checkGlErrorCE("Error assigning / binding textures");
 
-        // More 'Fragment shader specific' assignments
-//        GLES30.glUniform1i(uMode, mode1i);
-
         GLES30.glUniform2fv(uResolution, 1, resolution2fv, 0);
         GLES30.glUniformMatrix4fv(uEyeViewMatrix, 1, false, eyeViewMatrix4fv, 0); // Allows shader to situate itself.
         // TODO: Hook it back up, disconnected for now
@@ -399,26 +309,37 @@ public class Geometry implements Renderable {
 
         SimpleGLUtils.checkGlErrorCE("Error assigning Raymarching Program values");
 
-        // Assign vertex data to attrib.
-        GLES30.glVertexAttribPointer(aPositionHandle, 3, GLES30.GL_FLOAT, false, 0, vertices);
-        GLES30.glVertexAttribPointer(aNormalHandle, 3, GLES30.GL_FLOAT, false, 0, normals);
+        // Loop over the list of instances.
+        if (geoInstances != null) for (GeometryBufferData i : geoInstances) draw(i);
+    }
 
+    private void draw(GeometryBufferData buffers) {
+
+        // Assign vertex data to attrib.
+        GLES30.glVertexAttribPointer(aPositionHandle, 3, GLES30.GL_FLOAT, false, 0, buffers.getVertices());
+        GLES30.glVertexAttribPointer(aNormalHandle, 3, GLES30.GL_FLOAT, false, 0, buffers.getNormals());
+
+        FloatBuffer translations = buffers.getTranslations();
         if (aTranslationHandle != -1 && translations != null) {
             GLES30.glVertexAttribPointer(aTranslationHandle, 3, GLES30.GL_FLOAT, false, 0, translations);
             GLES30.glVertexAttribDivisor(aTranslationHandle, 1);
         }
+        FloatBuffer rotations = buffers.getRotations();
         if (aRotationHandle != -1 && rotations != null) {
             GLES30.glVertexAttribPointer(aRotationHandle, 3, GLES30.GL_FLOAT, false, 0, rotations);
             GLES30.glVertexAttribDivisor(aRotationHandle, 1);
         }
+        FloatBuffer scales = buffers.getScales();
         if (aScaleHandle != -1 && scales != null) {
             GLES30.glVertexAttribPointer(aScaleHandle, 3, GLES30.GL_FLOAT, false, 0, scales);
             GLES30.glVertexAttribDivisor(aScaleHandle, 1);
         }
+        FloatBuffer colors = buffers.getColors();
         if( aColorHandle != -1 && colors != null) {
             GLES30.glVertexAttribPointer(aColorHandle, 4, GLES30.GL_FLOAT, false, 0, colors);
             GLES30.glVertexAttribDivisor(aColorHandle, 1);
         }
+        FloatBuffer parameters = buffers.getParameters();
         if (aParametersHandle != -1 && parameters != null) {
             GLES30.glVertexAttribPointer(aParametersHandle, 4, GLES30.GL_FLOAT, false, 0, parameters);
             GLES30.glVertexAttribDivisor(aParametersHandle, 1);
@@ -426,9 +347,8 @@ public class Geometry implements Renderable {
 
         // Draw command
         // https://developer.apple.com/library/ios/documentation/3DDrawing/Conceptual/OpenGLES_ProgrammingGuide/Performance/Performance.html#//apple_ref/doc/uid/TP40008793-CH105-SW21
-        GLES30.glDrawArraysInstanced(GLES30.GL_TRIANGLES, 0, vertexCount, instancedCount);
-        SimpleGLUtils.checkGlErrorCE("Drawing cube");
-
+        GLES30.glDrawArraysInstanced(GLES30.GL_TRIANGLES, 0, buffers.getVertexCount(), buffers.getInstancedCount());
+        SimpleGLUtils.checkGlErrorCE("Drawing Object");
     }
 
     /**
@@ -439,22 +359,6 @@ public class Geometry implements Renderable {
      */
     public boolean queue(GeometryData geometryData) {
         return dataQueue.isEmpty() && dataQueue.add(geometryData);
-    }
-
-    public void setTranslation(float x, float y, float z) {
-        this.modelTranslation[0] = x;
-        this.modelTranslation[1] = y;
-        this.modelTranslation[2] = z;
-    }
-
-    public void setRotation(float x, float y, float z) {
-        this.modelRotation[0] = x;
-        this.modelRotation[1] = y;
-        this.modelRotation[2] = z;
-    }
-
-    public void setScale(float s) {
-        this.modelScale = s;
     }
 
     public void setResolution2fv(float width, float height) {
@@ -477,12 +381,6 @@ public class Geometry implements Renderable {
     public void setTime1f(float time1f) {
         this.time1f = time1f;
     }
-
-/*
-    public void setMode1i(int mode1i) {
-        this.mode1i = mode1i;
-    }
-*/
 
     // NOTE: If changed on the fly, initGLProgram() needs to be called.
     public void setVertexShaderCode(String vertexShaderCode) {
