@@ -14,8 +14,6 @@ import android.widget.TextView;
 import com.google.vrtoolkit.cardboard.CardboardActivity;
 import com.google.vrtoolkit.cardboard.CardboardView;
 import com.kanawish.androidvrtalk.R;
-import com.kanawish.androidvrtalk.domain.FileSystemManager;
-import com.kanawish.androidvrtalk.domain.FirebaseManager;
 import com.kanawish.androidvrtalk.domain.GeoScriptEventListener;
 import com.kanawish.androidvrtalk.domain.ScriptManager;
 import com.kanawish.androidvrtalk.domain.VertexShaderEventListener;
@@ -307,12 +305,12 @@ public class VrTalkActivity extends CardboardActivity {
         // This will subscribe to a head tracking info stream, we overlay it to help debug scenes.
         subscribeToDebugPublisher(renderer.getDebugOutputPublishSubject());
 
-        // Load the rhino geoWrapper from local storage.
+        // Load geoWrapper from local storage.
         try {
-            geoWrapper = IOUtils.loadStringFromAsset(this, "js/rhinoWrapper.js");
+            geoWrapper = IOUtils.loadStringFromAsset(this, "js/wrapper.js");
         } catch (IOException e) {
-            Timber.e(e, "Failed to load 'js/rhinoWrapper.js'");
-            throw new RuntimeException("Critical failure, app is missing 'rhinoWrapper.js' asset.");
+            Timber.e(e, "Failed to load 'js/wrapper.js'");
+            throw new RuntimeException("Critical failure, app is missing 'wrapper.js' asset.");
         }
 
 
@@ -341,15 +339,16 @@ public class VrTalkActivity extends CardboardActivity {
     protected void onResume() {
         super.onResume();
 
-        initProgramBus();
+        subscribeProgramBus();
 
         renderer.play();
     }
 
-    public void initProgramBus() {
+    public void subscribeProgramBus() {
         geoSub = programBus
                 .geoScriptBus()
-                .map(script -> String.format(geoWrapper, script))
+                .debounce(500, TimeUnit.MILLISECONDS)
+                .map(script -> String.format(geoWrapper, script)) // TODO: Came from original rhino setup, might be removeable
                 .observeOn(Schedulers.computation())
 //                .map(script -> GeometryManager.rhinoGeometryData(script))
 //                .map(script -> GeometryManager.duktapeGeometryData(script))
@@ -360,12 +359,14 @@ public class VrTalkActivity extends CardboardActivity {
 
         vertexSub = programBus
                 .vertexShaderBus()
+                .debounce(500, TimeUnit.MILLISECONDS)
                 .doOnNext(shader -> Timber.d("Vector Shader code changed."))
                 .observeOn(HandlerScheduler.from(new Handler()))
                 .subscribe(shader -> cardboardView.queueEvent(() -> renderer.updateVertexShader(shader)));
 
         fragSub = programBus
                 .fragmentShaderBus()
+                .debounce(500, TimeUnit.MILLISECONDS)
                 .doOnNext(shader -> Timber.d("Fragment Shader code changed."))
                 .observeOn(HandlerScheduler.from(new Handler()))
                 .subscribe(shader -> cardboardView.queueEvent(() -> renderer.updateFragmentShader(shader)));
@@ -376,14 +377,14 @@ public class VrTalkActivity extends CardboardActivity {
     protected void onPause() {
         super.onPause();
         renderer.pause();
-    }
 
-    public void onStop() {
-
+        // TODO: Double check, was there a good reason I'd put this in 'onStop'? Seems like an error.
         geoSub.unsubscribe();
         vertexSub.unsubscribe();
         fragSub.unsubscribe();
+    }
 
+    public void onStop() {
         super.onStop();
     }
 

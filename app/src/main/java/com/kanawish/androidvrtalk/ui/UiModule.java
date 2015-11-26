@@ -7,7 +7,8 @@ import dagger.Module;
  */
 @Module(
     injects = {
-        VrTalkActivity.class
+        VrTalkActivity.class,
+        PlainGLActivity.class
     },
     complete = false,
     library = true

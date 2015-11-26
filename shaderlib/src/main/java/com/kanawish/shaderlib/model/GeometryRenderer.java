@@ -4,7 +4,7 @@ import android.opengl.GLES30;
 import android.opengl.Matrix;
 import android.os.SystemClock;
 
-import com.kanawish.shaderlib.defaults.DefaultShaders;
+import com.kanawish.shaderlib.generation.DefaultShaders;
 import com.kanawish.shaderlib.utils.ShaderCompileException;
 import com.kanawish.shaderlib.utils.SimpleGLUtils;
 

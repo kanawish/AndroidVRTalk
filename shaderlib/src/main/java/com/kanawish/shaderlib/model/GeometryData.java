@@ -14,6 +14,15 @@ public class GeometryData {
         public float[] v;   // vertices
         public float[] n;   // normals
         public Instanced i; // instance data
+
+        public Obj() {
+        }
+
+        public Obj(float[] vertices, float[] normals, Instanced instanced) {
+            this.v = vertices;
+            this.n = normals;
+            this.i = instanced;
+        }
     }
 
     public static class Instanced {
@@ -24,6 +33,18 @@ public class GeometryData {
         public float[] c; // color vec4f
         public float[] p; // params vec4f (These can be used for anything in the vector shader.)
         public int[] m; // mode, intended to toggle between shader modes.
+
+        public Instanced() {
+        }
+
+        public Instanced(int instancedCount, float[][] params) {
+            this.instancedCount = instancedCount;
+            t = params[0];
+            r = params[1];
+            s = params[2];
+            c = params[3];
+            p = params[4];
+        }
     }
 
     public List<Obj> objs;

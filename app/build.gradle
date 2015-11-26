@@ -24,7 +24,7 @@ def firebaseHost = props['FIREBASE_HOST'];
 
 android {
     compileSdkVersion 23
-    buildToolsVersion '23.0.1'
+    buildToolsVersion '23.0.2'
 
     defaultConfig {
         applicationId "com.kanawish.androidvrtalk"
@@ -60,14 +60,19 @@ android {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile project(':shaderlib')
-    compile 'com.android.support:appcompat-v7:23.0.1'
+    compile 'com.android.support:appcompat-v7:23.1.1'
     compile 'com.firebase:firebase-client-android:2.3.1'
     compile 'com.squareup.dagger:dagger:1.2.2'
     apt 'com.squareup.dagger:dagger-compiler:1.2.2'
+/*
     androidTestCompile 'junit:junit:4.12'
-    androidTestCompile 'com.android.support.test.espresso:espresso-core:2.2.1'
+    androidTestCompile ('com.android.support.test.espresso:espresso-core:2.2.1') {
+        exclude module: 'support-annotations' // Remove once a newer espresso is released.
+    }
     androidTestCompile 'com.android.support.test:runner:0.4.1'
     androidTestCompile 'com.android.support.test:rules:0.4.1'
+*/
     testCompile 'junit:junit:4.12'
     testCompile 'com.google.truth:truth:0.27'
+    compile 'com.google.android.gms:play-services-appindexing:8.1.0'
 }

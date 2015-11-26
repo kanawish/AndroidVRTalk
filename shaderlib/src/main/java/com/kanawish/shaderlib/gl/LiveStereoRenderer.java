@@ -258,6 +258,7 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
     }
 
     int frameCount = 0 ;
+
     /**
      * Draws a frame for an eye.
      *
@@ -268,7 +269,7 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
 
         // Quick patch for backpressure problem.
-        if( frameCount++ % 15 == 0 ) generateDebugOutput(eye);
+        if( frameCount++ % 60 == 0 ) generateDebugOutput(eye);
 
         // Get a perspective ratio for the eye view.
         float ratio = (float) eye.getViewport().width / eye.getViewport().height;
