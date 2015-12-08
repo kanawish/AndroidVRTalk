@@ -1,13 +1,25 @@
-apply plugin: 'com.android.library'
+apply plugin: 'idea'
+apply plugin: 'com.android.application'
 apply plugin: 'com.neenbedankt.android-apt'
 apply plugin: 'me.tatarka.retrolambda'
 
+// This is where we set up javadoc/source browsing.
+idea {
+    module {
+        // if you love browsing Javadoc
+        downloadJavadoc = true
+        // and love reading sources
+        downloadSources = true
+    }
+}
+
 android {
     compileSdkVersion 23
-    buildToolsVersion '23.0.2'
+    buildToolsVersion "23.0.2"
 
     defaultConfig {
-        minSdkVersion 16
+        applicationId "com.kanawish.mapper"
+        minSdkVersion 18
         targetSdkVersion extTargetSdkVersion
         versionCode extVersionCode
         versionName extVersionName
@@ -19,23 +31,17 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
 }
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.jakewharton.timber:timber:4.0.1'
-    compile 'com.jakewharton:butterknife:7.0.1'
+    compile project(':common')
+
+    compile 'com.android.support:appcompat-v7:23.1.1'
+    compile 'com.android.support:design:23.1.1'
+
     compile 'com.squareup.dagger:dagger:1.2.2'
     apt 'com.squareup.dagger:dagger-compiler:1.2.2'
-    compile 'com.squareup.moshi:moshi:1.0.0'
-    compile 'io.reactivex:rxandroid:1.0.1'
-    compile 'io.reactivex:rxjava-math:1.0.0'
-    compile 'org.mozilla:rhino:1.7.7'
-    compile 'com.squareup.duktape:duktape-android:0.9.4'
+
     testCompile 'junit:junit:4.12'
 }

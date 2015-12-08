@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">GamepadMapper</string>
+    <string name="action_settings">Settings</string>
+    <string name="accessibility_service_label">Gamepad Mapper Service</string>
+    <string name="accessibility_service_description">Map gamepad inputs to mobile inputs</string>
+</resources>

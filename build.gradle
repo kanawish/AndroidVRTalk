@@ -29,7 +29,7 @@ ext {
     extMinSdkVersion = 19;
     extWearMinSdkVersion = 21;
     extTvMinSdkVersion = 21;
-    extTargetSdkVersion = 23;
+    extTargetSdkVersion = 22;
 
     // TODO: Make this more granular, see u2020 for reference.
     extVersionCode = 103;
