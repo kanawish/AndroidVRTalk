@@ -23,7 +23,7 @@ def firebaseHost = props['FIREBASE_HOST'];
 // storePassword, keyAlias, keyPassword
 
 android {
-    compileSdkVersion 22
+    compileSdkVersion 23
     buildToolsVersion '23.0.2'
 
     defaultConfig {
