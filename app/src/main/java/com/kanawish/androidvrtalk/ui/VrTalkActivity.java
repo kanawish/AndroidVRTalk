@@ -292,7 +292,7 @@ public class VrTalkActivity extends CardboardActivity {
         ButterKnife.bind(this);
 
         // Configure the cardboardView. There's a lot of available options, here's two.
-        cardboardView.setVRModeEnabled(false);
+        cardboardView.setVRModeEnabled(true);
         cardboardView.setDistortionCorrectionEnabled(false); // FIXME: Currently broken
 
         // Create the renderer that does the actual drawing.
