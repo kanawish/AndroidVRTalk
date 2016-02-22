@@ -23,11 +23,9 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 
 import dagger.ObjectGraph;
-import rx.Observable;
 import rx.Subscription;
 import rx.android.schedulers.HandlerScheduler;
 import rx.functions.Action1;
-import rx.schedulers.Schedulers;
 import timber.log.Timber;
 
 /**
