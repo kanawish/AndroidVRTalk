@@ -14,7 +14,7 @@ idea {
 
 android {
     compileSdkVersion 23
-    buildToolsVersion '23.0.2'
+    buildToolsVersion extBuildToolsVersion
 
     defaultConfig {
         minSdkVersion extMinSdkVersion

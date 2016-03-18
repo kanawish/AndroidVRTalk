@@ -24,7 +24,7 @@ def firebaseHost = props['FIREBASE_HOST'];
 
 android {
     compileSdkVersion 23
-    buildToolsVersion '23.0.2'
+    buildToolsVersion extBuildToolsVersion
 
     defaultConfig {
         applicationId "com.kanawish.androidvrtalk"
