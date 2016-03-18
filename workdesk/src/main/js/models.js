@@ -1,209 +1,241 @@
 /**
- * Created by kanawish on 15-08-05.
+* The Models module has a series of procedural model functions we use to demo live-coding concepts.
+*/
+
+//var Rx = require('rx');
+var normal = require('get-plane-normal');
+
+var models = module.exports.models = {};
+
+var pusher = function (out, array) { for( var i in array ) out.push(array[i]); };
+
+// Builds up the per-instance attributes: translation [vec3f], rotation [vec3f], scale [vec3f], material [vec3f]
+// Basically a JSON GeometryData.Instanced
+models.buildInstanced = function (count, translation, rotation, scale, color, params, mode)
+{
+    return {instancedCount: count, t: translation, r: rotation, s: scale, c: color, p:params, m: mode};
+};
+
+/**
+ * The code that puts together our GeometryData.Instanced from the perInstance parameter.
+ *
+ * See: GeometryData.java
  */
+models.buildInstancedFromArray = function (dataArray) {
+    var t = [], r = [], s = [], c = [], p = [] ;
+    for(var i in dataArray) {
+        for( y in dataArray[i][0]) t.push(dataArray[i][0][y]) ;
+        for( y in dataArray[i][1]) r.push(dataArray[i][1][y]) ;
+        for( y in dataArray[i][2]) s.push(dataArray[i][2][y]) ;
+        for( y in dataArray[i][3]) c.push(dataArray[i][3][y]) ;
+        for( y in dataArray[i][4]) p.push(dataArray[i][4][y]) ;
+    }
+    return models.buildInstanced(dataArray.length,t,r,s,c,p);
+};
 
-var models = {} ;
-exports.models = models ;
+// Build a JSON GeometryData.Obj
+models.buildObj = function(vertices, normals, instanced) {
+    return { v: vertices, n: normals, i: instanced };
+};
 
-(function(m) {
+models.buildPlane = function (instanced) {
+    return {v: models.V_PLANE, n: models.N_PLANE, i: instanced};
+};
 
-    // Builds up the per-instance attributes: translation [vec3f], rotation [vec3f], scale [vec3f], material [vec3f]
-    // Basically a JSON GeometryData.Instanced
-    m.buildInstanced = function (count, translation, rotation, scale, color, params, mode)
-    {
-        return {instancedCount: count, t: translation, r: rotation, s: scale, c: color, p:params, m: mode};
-    };
+models.buildCube = function (instanced) {
+    return {v: models.V_CUBE, n: models.N_CUBE, i: instanced};
+};
 
-    /**
-     * The code that puts together our GeometryData.Instanced from the perInstance parameter.
-     *
-     * See: GeometryData.java
-     */
-    m.buildInstancedFromArray = function (dataArray) {
-        var t = [], r = [], s = [], c = [], p = [] ;
-        for(var i in dataArray) {
-            for( y in dataArray[i][0]) t.push(dataArray[i][0][y]) ;
-            for( y in dataArray[i][1]) r.push(dataArray[i][1][y]) ;
-            for( y in dataArray[i][2]) s.push(dataArray[i][2][y]) ;
-            for( y in dataArray[i][3]) c.push(dataArray[i][3][y]) ;
-            for( y in dataArray[i][4]) p.push(dataArray[i][4][y]) ;
+/*
+    dims.xMax
+        .yMax
+    perlin lib
+
+    TODO: Rx-if-y
+ */
+models.buildLandscape = function( instanced, dims, p ) {
+
+    // Generate vertex grid
+    var smooth = 25 ;
+    var range = 3.5 ;
+    var grid = [] ;
+    for( var x = 0 ; x < dims.xMax ; x++ ) {
+        grid.push([]);
+        for( var y = 0 ; y < dims.yMax ; y++ ) {
+            var h = p.noise.simplex2(x/smooth,y/smooth);
+            // Build a grid of vertices with randomized heights.
+            grid[x].push([x-(dims.xMax/2), h*range,y-(dims.yMax/2)]);
         }
-        return m.buildInstanced(dataArray.length,t,r,s,c,p);
-    };
+    }
 
-    // Build a JSON GeometryData.Obj
-    m.buildObj = function(vertices, normals, instanced) {
-        return { v: vertices, n: normals, i: instanced };
-    };
+    var vertices = [];
+    var normals = [];
 
-    m.buildPlane = function (instanced) {
-        return {v: m.V_PLANE, n: m.N_PLANE, i: instanced};
-    };
+    // Take the vertices, build a triangle mesh out of them.
+    for (var x = 0; x < dims.xMax - 1; x++) {
+        for (var y = 0; y < dims.yMax - 1; y++) {
+            // Triangle A
+            pusher(vertices,grid[x][y]);
+            pusher(vertices,grid[x+1][y]);
+            pusher(vertices,grid[x][y+1]);
+            var normalA = normal([], grid[x][y], grid[x + 1][y], grid[x][y + 1]);
+            // TODO: Invert the normal.
+            pusher(normals, normalA);
+            pusher(normals, normalA);
+            pusher(normals, normalA);
 
-    m.buildCube = function (instanced) {
-        return {v: m.V_CUBE, n: m.N_CUBE, i: instanced};
-    };
-
-    /*
-        dims.xMax
-            .yMax
-        perlin lib
-     */
-    m.buildField = function( instanced, dims, perlin ) {
-
-        // Using Cube instance definitions to generate a simple cubic landscape
-        perlin.noise.seed(Math.random());
-
-        var grid = {} ;
-        // Generate vertex grid
-        for( var x = 0 ; x < dims.xMax ; x++ ) {
-            grid.push({});
-            for( var y = 0 ; y < dims.yMax ; y++ ) {
-                var h = perlin.noise.simplex2(x/10,y/10);
-                // Build a grid of vertices with randomized heights.
-                grid[x].push({'x':x-(dims.xMax/2), 'y': h-6,'z':y-(dims.yMax/2)});
-
-                //cubeInstanceDefs.push([[x-25, -6+(h*1.0), 25-y], [0, 0, 0], [0.5, 0.5, 0.5], [.6, 0.4, .0, 1], [3, 0, 0, 0]]);
-            }
+            // Triangle B
+            pusher(vertices,grid[x+1][y]);
+            pusher(vertices,grid[x+1][y+1]);
+            pusher(vertices,grid[x][y+1]);
+            var normalB = normal([], grid[x + 1][y], grid[x + 1][y + 1], grid[x][y + 1]);
+            pusher(normals, normalB);
+            pusher(normals, normalB);
+            pusher(normals, normalB);
         }
+    }
 
-        var mesh = {} ;
-        // Take the vertices, build a triangle mesh out of them.
-        for (var x = 0; x < dims.xMax - 1; x++) {
-            for (var y = 0; y < dims.yMax - 1; y++) {
-                grid[x][y];
-                grid[x+1][y];
-                grid[x][y+1];
-            }
-        }
+    return {v: vertices, n: normals, i: instanced};
+};
+
+models.buildHouse = function() {
+    var vertices = [] ;
+    var normals = [] ;
+
+    // A cube for the base
 
 
-    };
+    // 2 planes for the roof
 
-    // ***** CONSTANTS *****
+    // triangles for the corners
+};
 
-    // Plane vertices
-    m.V_PLANE = [
-        // Front face
-        -1.0, 1.0, 0.0,
-        -1.0, -1.0, 0.0,
-        1.0, 1.0, 0.0,
-        -1.0, -1.0, 0.0,
-        1.0, -1.0, 0.0,
-        1.0, 1.0, 0.0
-    ];
+models.buildTriangle = function() {
 
-    // Plane normals
-    m.N_PLANE = [
-        // Front face
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
-    ];
+};
 
-    // Cube vertices
-    m.V_CUBE = [
-        // Front face
-        -1.0, 1.0, 1.0,
-        -1.0, -1.0, 1.0,
-        1.0, 1.0, 1.0,
-        -1.0, -1.0, 1.0,
-        1.0, -1.0, 1.0,
-        1.0, 1.0, 1.0,
+// ***** CONSTANTS *****
 
-        // Right face
-        1.0, 1.0, 1.0,
-        1.0, -1.0, 1.0,
-        1.0, 1.0, -1.0,
-        1.0, -1.0, 1.0,
-        1.0, -1.0, -1.0,
-        1.0, 1.0, -1.0,
+// Plane vertices
+models.V_PLANE = [
+    // Front face
+    -1.0, 1.0, 0.0,
+    -1.0, -1.0, 0.0,
+    1.0, 1.0, 0.0,
+    -1.0, -1.0, 0.0,
+    1.0, -1.0, 0.0,
+    1.0, 1.0, 0.0
+];
 
-        // Back face
-        1.0, 1.0, -1.0,
-        1.0, -1.0, -1.0,
-        -1.0, 1.0, -1.0,
-        1.0, -1.0, -1.0,
-        -1.0, -1.0, -1.0,
-        -1.0, 1.0, -1.0,
+// Plane normals
+models.N_PLANE = [
+    // Front face
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0
+];
 
-        // Left face
-        -1.0, 1.0, -1.0,
-        -1.0, -1.0, -1.0,
-        -1.0, 1.0, 1.0,
-        -1.0, -1.0, -1.0,
-        -1.0, -1.0, 1.0,
-        -1.0, 1.0, 1.0,
+// Cube vertices
+models.V_CUBE = [
+    // Front face
+    -1.0, 1.0, 1.0,
+    -1.0, -1.0, 1.0,
+    1.0, 1.0, 1.0,
+    -1.0, -1.0, 1.0,
+    1.0, -1.0, 1.0,
+    1.0, 1.0, 1.0,
 
-        // Top face
-        -1.0, 1.0, -1.0,
-        -1.0, 1.0, 1.0,
-        1.0, 1.0, -1.0,
-        -1.0, 1.0, 1.0,
-        1.0, 1.0, 1.0,
-        1.0, 1.0, -1.0,
+    // Right face
+    1.0, 1.0, 1.0,
+    1.0, -1.0, 1.0,
+    1.0, 1.0, -1.0,
+    1.0, -1.0, 1.0,
+    1.0, -1.0, -1.0,
+    1.0, 1.0, -1.0,
 
-        // Bottom face
-        1.0, -1.0, -1.0,
-        1.0, -1.0, 1.0,
-        -1.0, -1.0, -1.0,
-        1.0, -1.0, 1.0,
-        -1.0, -1.0, 1.0,
-        -1.0, -1.0, -1.0
-    ];
+    // Back face
+    1.0, 1.0, -1.0,
+    1.0, -1.0, -1.0,
+    -1.0, 1.0, -1.0,
+    1.0, -1.0, -1.0,
+    -1.0, -1.0, -1.0,
+    -1.0, 1.0, -1.0,
 
-    // Cube normals
-    m.N_CUBE = [
-        // Front face
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
+    // Left face
+    -1.0, 1.0, -1.0,
+    -1.0, -1.0, -1.0,
+    -1.0, 1.0, 1.0,
+    -1.0, -1.0, -1.0,
+    -1.0, -1.0, 1.0,
+    -1.0, 1.0, 1.0,
 
-        // Right face
-        1.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
+    // Top face
+    -1.0, 1.0, -1.0,
+    -1.0, 1.0, 1.0,
+    1.0, 1.0, -1.0,
+    -1.0, 1.0, 1.0,
+    1.0, 1.0, 1.0,
+    1.0, 1.0, -1.0,
 
-        // Back face
-        0.0, 0.0, -1.0,
-        0.0, 0.0, -1.0,
-        0.0, 0.0, -1.0,
-        0.0, 0.0, -1.0,
-        0.0, 0.0, -1.0,
-        0.0, 0.0, -1.0,
+    // Bottom face
+    1.0, -1.0, -1.0,
+    1.0, -1.0, 1.0,
+    -1.0, -1.0, -1.0,
+    1.0, -1.0, 1.0,
+    -1.0, -1.0, 1.0,
+    -1.0, -1.0, -1.0
+];
 
-        // Left face
-        -1.0, 0.0, 0.0,
-        -1.0, 0.0, 0.0,
-        -1.0, 0.0, 0.0,
-        -1.0, 0.0, 0.0,
-        -1.0, 0.0, 0.0,
-        -1.0, 0.0, 0.0,
+// Cube normals
+models.N_CUBE = [
+    // Front face
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
 
-        // Top face
-        0.0, 1.0, 0.0,
-        0.0, 1.0, 0.0,
-        0.0, 1.0, 0.0,
-        0.0, 1.0, 0.0,
-        0.0, 1.0, 0.0,
-        0.0, 1.0, 0.0,
+    // Right face
+    1.0, 0.0, 0.0,
+    1.0, 0.0, 0.0,
+    1.0, 0.0, 0.0,
+    1.0, 0.0, 0.0,
+    1.0, 0.0, 0.0,
+    1.0, 0.0, 0.0,
 
-        // Bottom face
-        0.0, -1.0, 0.0,
-        0.0, -1.0, 0.0,
-        0.0, -1.0, 0.0,
-        0.0, -1.0, 0.0,
-        0.0, -1.0, 0.0,
-        0.0, -1.0, 0.0
-    ]
+    // Back face
+    0.0, 0.0, -1.0,
+    0.0, 0.0, -1.0,
+    0.0, 0.0, -1.0,
+    0.0, 0.0, -1.0,
+    0.0, 0.0, -1.0,
+    0.0, 0.0, -1.0,
 
-})(models);
+    // Left face
+    -1.0, 0.0, 0.0,
+    -1.0, 0.0, 0.0,
+    -1.0, 0.0, 0.0,
+    -1.0, 0.0, 0.0,
+    -1.0, 0.0, 0.0,
+    -1.0, 0.0, 0.0,
+
+    // Top face
+    0.0, 1.0, 0.0,
+    0.0, 1.0, 0.0,
+    0.0, 1.0, 0.0,
+    0.0, 1.0, 0.0,
+    0.0, 1.0, 0.0,
+    0.0, 1.0, 0.0,
+
+    // Bottom face
+    0.0, -1.0, 0.0,
+    0.0, -1.0, 0.0,
+    0.0, -1.0, 0.0,
+    0.0, -1.0, 0.0,
+    0.0, -1.0, 0.0,
+    0.0, -1.0, 0.0
+];

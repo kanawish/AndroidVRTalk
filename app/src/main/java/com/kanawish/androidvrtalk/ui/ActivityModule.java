@@ -1,7 +1,8 @@
 package com.kanawish.androidvrtalk.ui;
 
+import android.app.Activity;
+
 import com.kanawish.androidvrtalk.AppModule;
-import com.kanawish.androidvrtalk.domain.DomainModule;
 
 import dagger.Module;
 
@@ -13,10 +14,10 @@ import dagger.Module;
         injects = {} // Views, activity specific items, see u2020 for example
 )
 public class ActivityModule {
-    private final VrTalkActivity vrTalkActivity;
+    private final Activity currentActivity;
 
-    public ActivityModule(VrTalkActivity vrTalkActivity) {
-        this.vrTalkActivity = vrTalkActivity;
+    public ActivityModule(Activity currentActivity) {
+        this.currentActivity = currentActivity;
     }
 
     // TODO: This is just a shell module to build upon. Add as we go.

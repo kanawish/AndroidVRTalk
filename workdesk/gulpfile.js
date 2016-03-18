@@ -49,7 +49,8 @@ function bundle() {
 }
 
 
-var fbRef = new Firebase('https://YOUR-FIREBASE-INSTANCE-GOES-HERE');
+// TODO: Edit this to your own firebase link.
+var fbRef = new Firebase('https://<YOUR_INSTANCE_HERE>.firebaseio.com');
 
 gulp.task('shipGeoFb', function (done) {
     // https://docs.nodejitsu.com/articles/file-system/how-to-read-files-in-nodejs

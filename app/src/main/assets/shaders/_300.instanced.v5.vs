@@ -7,7 +7,7 @@ precision mediump float;
 
 // Shader Versioning Scheme
 uniform bool uKv1;
-    
+
 // From a full example found here: http://www.learnopengles.com/android-lesson-four-introducing-basic-texturing/
 uniform mat4 uMMatrix;
 uniform mat4 uVMatrix;
@@ -19,7 +19,7 @@ uniform mat4 uMVMatrix;        // A constant representing the combined model/vie
 in vec4 aPosition;      // Per-vertex position information we will pass in.
 in vec3 aNormal;        // Per-vertex normal information we will pass in.
 in vec2 aTexCoordinate; // Per-vertex texture coordinate information we will pass in.
- 
+
 in vec3 aTranslationHandle;
 in vec3 aRotationHandle;
 in vec3 aScaleHandle;
@@ -29,7 +29,7 @@ in vec4 aParametersHandle;
 out vec4 vPosition;        // This will be passed into the fragment shader.
 out vec3 vNormal;          // This will be passed into the fragment shader.
 out vec2 vTexCoordinate;   // This will be passed into the fragment shader.
- 
+
 out vec4 vColor;           // This will be passed into the fragment shader.
 out vec4 vRawColor;
 out vec4 vParams;
@@ -72,7 +72,7 @@ mat4 rot(vec3 axis, float angle)
     float s = sin(angle);
     float c = cos(angle);
     float oc = 1.0 - c;
-    
+
     return mat4(oc * axis.x * axis.x + c,           oc * axis.x * axis.y - axis.z * s,  oc * axis.z * axis.x + axis.y * s,  0.0,
                 oc * axis.x * axis.y + axis.z * s,  oc * axis.y * axis.y + c,           oc * axis.y * axis.z - axis.x * s,  0.0,
                 oc * axis.z * axis.x - axis.y * s,  oc * axis.y * axis.z + axis.x * s,  oc * axis.z * axis.z + c,           0.0,
@@ -84,7 +84,7 @@ mat4 rot(vec3 axis, float angle)
 // The entry point for our vertex shader.
 void main()
 {
-    
+
     vec3 xA = vec3(1.,0.0,0.0); vec3 yA = vec3(0.,1.0,0.0); vec3 zA = vec3(0.,0.0,1.0);
     // Talking point: It's very powerful to get instant feedback to grasp how things work.
     mat4 r = rot(xA,aRotationHandle.x)*rot(yA,aRotationHandle.y)*rot(zA,aRotationHandle.z);
@@ -96,35 +96,35 @@ void main()
     // Pass through the texture coordinate.
     vTexCoordinate = aTexCoordinate;
 
-    // TEST - OVERRIDE 
+    // TEST - OVERRIDE
     if( vParams.x == 3.0 ) {
         // Wrong point ordering in .js?
         vNormal = -normalize(aNormal);
-    } else { 
+    } else {
         vNormal = aNormal ;
     }
 
-    // The position of the light in **eye space**. 
+    // The position of the light in **eye space**.
     // TODO: Parametrize
-    // vec3 u_LightPos = vec3(uMVMatrix * vec4(-10.0,20.0,-15.0,0.0)); 
-    vec3 u_LightPos = vec3(uMVMatrix * vec4(0.0,30.0,10.0,0.0)); 
- 
+    // vec3 u_LightPos = vec3(uMVMatrix * vec4(-10.0,20.0,-15.0,0.0));
+    vec3 u_LightPos = vec3(uMVMatrix * vec4(0.0,30.0,10.0,0.0));
+
     // Transform the vertex into eye space.
     vec3 modelViewVertex = vec3(uMVMatrix * t*r*aPosition);
     // Transform the normal's orientation into eye space.
     vec3 modelViewNormal = vec3(uMVMatrix * t*r*vec4(vNormal, 0.0));
-    // Will be used for attenuation. 
+    // Will be used for attenuation.
     float distance = length(u_LightPos - modelViewVertex) * 0.015;
     // Get a lighting direction vector from the light to the vertex.
     vec3 lightVector = normalize(u_LightPos - modelViewVertex);
-    // Calculate the dot product of the light vector and vertex normal. If the 
+    // Calculate the dot product of the light vector and vertex normal. If the
     // normal and light vector are pointing in the same direction then it will
     // get max illumination.
-    float lambertFactor = max(dot(modelViewNormal, lightVector), 0.25); 
+    float lambertFactor = max(dot(modelViewNormal, lightVector), 0.25);
     // Attenuate the light based on distance.
-    float diffuse = lambertFactor * (1.0 / (1.0 + (0.5 * distance * distance))); 
+    float diffuse = lambertFactor * (1.0 / (1.0 + (0.5 * distance * distance)));
 
-    // Multiply the color by the illumination level. It will be interpolated 
+    // Multiply the color by the illumination level. It will be interpolated
     // across the triangle.
     vColor = vec4(1.0,1.0,1.0,1.0);
     // *** TODO DEMO LINES ->
@@ -134,8 +134,8 @@ void main()
 
     vRawColor = aColor ;
     // gl_Position is a special variable used to store the final position.
-    // Multiply the vertex by the matrix to get the final point in normalized 
-    // screen coordinates.      
+    // Multiply the vertex by the matrix to get the final point in normalized
+    // screen coordinates.
     vTranslation = aTranslationHandle;
     vPosition = vec4(t*r*s*aPosition);
     gl_Position = uMVPMatrix * t*r*s*aPosition;

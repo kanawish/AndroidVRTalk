@@ -21,19 +21,19 @@ uniform sampler2D uTexture3;
 
 // in vec4 vTranslation;
 in vec4 vPosition;
-in vec3 vNormal; 
+in vec3 vNormal;
 in vec2 vTexCoordinate;
 in vec4 vColor;
 in vec4 vRawColor;
 in vec4 vParams;
-in vec3 vTranslation;  
+in vec3 vTranslation;
 
 out vec4 out_color;
 
 float rand(vec2 co)
 {
     return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
-}    
+}
 
 #define PI 3.1416
 #define M_PI 3.14159265358979323846
@@ -47,14 +47,14 @@ void polkaDotter() {
 
 	// Optional: rotate the relative position.
 // 	vec2 pos = mod(rotation*gl_FragCoord.xy, vec2(gridSize)) - vec2(gridSize/2.0) ;
-	
+
 	// DISTANCE FUNCTION: How far are we from 0,0 ?
 	float dist_squared = dot(pos, pos);
 
     vec4 col1 = vec4(.9, .7, .9, 1.0);
     vec4 col2 = vec4(.20, .20, .40, 1.0);
-    
-    // Pick between color 1 and color 2, 
+
+    // Pick between color 1 and color 2,
 	out_color = mix(col1, col2, smoothstep(1500.0, 2000.0, dist_squared));
 }
 
@@ -63,20 +63,20 @@ void polkaDotter() {
 vec3 skyColor( in vec3 rd )
 {
     vec3 sundir = normalize( vec3(.0, .1, 1.) );
-    
+
     float yd = min(rd.y, 0.);
     rd.y = max(rd.y, 0.);
 
     vec3 col = vec3(0.);
-    
-    col += vec3(.4, .4 - exp( -rd.y*20. )*.3, .0) * exp(-rd.y*9.); // Red / Green 
+
+    col += vec3(.4, .4 - exp( -rd.y*20. )*.3, .0) * exp(-rd.y*9.); // Red / Green
     col += vec3(.3, .5, .6) * (1. - exp(-rd.y*8.) ) * exp(-rd.y*.9) ; // Blue
-    
+
     col = mix(col*1.2, vec3(.3),  1.-exp(yd*100.)); // Fog
-    
+
     col += vec3(1.0, .8, .55) * pow( dot(rd,sundir), 15. ) * .6; // Sun
     col += pow(dot(rd, sundir), 150.0) *.15;
-    
+
     return col;
 }
 
@@ -86,7 +86,7 @@ float sdSphere( vec3 p, float s )
 }
 
 float fields( vec3 p ) {
-	// a sphere at coords 
+	// a sphere at coords
 	float d = sdSphere(p-vTranslation,0.9);
 	return d ;
 }
@@ -139,9 +139,9 @@ vec4 march( in vec3 rd ) {
         if(d < epsilon) {
         	return vRawColor * shade(p);
         }
-        t += d ;  
+        t += d ;
     }
-    // return vec4(1.0,1.0,0.0,1.0); 
+    // return vec4(1.0,1.0,0.0,1.0);
  	discard ;
 }
 
@@ -150,29 +150,29 @@ void main() {
     // Camera Ray
     vec3 dir = normalize(vec3(vPosition.xy,abs(vPosition.z)));
 
-    if( vParams.x == 4.0 ) {
+    if( vParams.x == 4.0 ) { // Geometry shapes
         polkaDotter();
-    } else if(vParams.x == 5.0 ) { 
-    	// *** TODO Demo 
-    	out_color = march(vPosition.xyz); 
-    } else if ( vParams.x == 2.0 ) {
+    } else if(vParams.x == 5.0 ) { // Sphere (broken)
+    	// *** TODO Demo
+    	out_color = march(vPosition.xyz);
+    } else if ( vParams.x == 2.0 ) { // Sky
         // out_color = vec4(mod(vPosition.x,1.0),mod(vPosition.y,1.0),0.0,0.0);
-        // if(  
-        //     step(0.04,mod(vPosition.x,3.0))==0.0 || 
+        // if(
+        //     step(0.04,mod(vPosition.x,3.0))==0.0 ||
         //     step(0.04,mod(vPosition.z,3.0))==0.0 ||
-        //     step(0.04,mod(vPosition.y,3.0))==0.0 
-        // )  
+        //     step(0.04,mod(vPosition.y,3.0))==0.0
+        // )
         //     out_color = vColor ;
-        // else 
+        // else
         out_color = vec4(0.0,0.4,0.0,1.0);
-        // *** TODO Comment out to demo the sky, 
+        // *** TODO Comment out to demo the sky,
         // Explain in 2s the function code
         out_color = vec4(skyColor(dir),1.0);
     }
     else {
         out_color = vec4(1.0,0.0,0.0,1.0);
         out_color = vColor;
-        // *** TODO Demo shape drawing, meh... 
+        // *** TODO Demo shape drawing, meh...
         // polkaDotter();
     }
         

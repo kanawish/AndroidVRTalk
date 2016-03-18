@@ -73,10 +73,13 @@ public class FileSystemManager implements ScriptManager {
             public void onEvent(int event, String path) {
                 if (event == FileObserver.CREATE || event == FileObserver.CLOSE_WRITE) {
                     if(path.equals(GEO_JS)) {
+                        if(geoFileObserver!=null) geoFileObserver.stopWatching();
                         geoFileObserver = watch(geoFilePath, bus::publishGeoScript);
                     } else if(path.equals(SHADER_VS)) {
+                        if(vsFileObserver!=null) vsFileObserver.stopWatching();
                         vsFileObserver = watch(vsFilePath, bus::publishVertexShader);
                     } else if(path.equals(SHADER_FS)) {
+                        if(fsFileObserver!=null) fsFileObserver.stopWatching();
                         fsFileObserver = watch(fsFilePath, bus::publishFragmentShader);
                     }
                 }

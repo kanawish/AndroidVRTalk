@@ -15,6 +15,10 @@ import timber.log.Timber;
  * Created by ecaron on 15-10-18.
  */
 public class VrTalkApp extends Application {
+    static {
+//        if( BuildConfig.DEBUG ) System.loadLibrary("gapii");
+    }
+
     private ObjectGraph objectGraph;
 
     @Inject
