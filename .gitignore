@@ -9,3 +9,5 @@
 
 /build
 /captures
+workdesk/node_modules
+workdesk/dist

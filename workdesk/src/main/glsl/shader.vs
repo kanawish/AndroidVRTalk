@@ -91,39 +91,48 @@ void main()
     mat4 s = s(aScaleHandle);
     mat4 t = t(aTranslationHandle-vec3(0.,0.,0.)); // patched...
 
+    vParams = aParametersHandle ;
+
     // Pass through the texture coordinate.
     vTexCoordinate = aTexCoordinate;
-    vNormal = aNormal ;
+
+    // TEST - OVERRIDE 
+    if( vParams.x == 3.0 ) {
+        // Wrong point ordering in .js?
+        vNormal = -normalize(aNormal);
+    } else { 
+        vNormal = aNormal ;
+    }
 
     // The position of the light in **eye space**. 
     // TODO: Parametrize
-    vec3 u_LightPos = vec3(uMVMatrix * vec4(0.0,15.0,-10.0,0.0)); 
+    // vec3 u_LightPos = vec3(uMVMatrix * vec4(-10.0,20.0,-15.0,0.0)); 
+    vec3 u_LightPos = vec3(uMVMatrix * vec4(0.0,30.0,10.0,0.0)); 
  
     // Transform the vertex into eye space.
     vec3 modelViewVertex = vec3(uMVMatrix * t*r*aPosition);
     // Transform the normal's orientation into eye space.
-    vec3 modelViewNormal = vec3(uMVMatrix * t*r*vec4(aNormal, 0.0));
+    vec3 modelViewNormal = vec3(uMVMatrix * t*r*vec4(vNormal, 0.0));
     // Will be used for attenuation. 
-    float distance = length(u_LightPos - modelViewVertex) * 0.05;
+    float distance = length(u_LightPos - modelViewVertex) * 0.015;
     // Get a lighting direction vector from the light to the vertex.
     vec3 lightVector = normalize(u_LightPos - modelViewVertex);
     // Calculate the dot product of the light vector and vertex normal. If the 
     // normal and light vector are pointing in the same direction then it will
     // get max illumination.
-    float lambertFactor = max(dot(modelViewNormal, lightVector), 0.2); 
+    float lambertFactor = max(dot(modelViewNormal, lightVector), 0.25); 
     // Attenuate the light based on distance.
-    float diffuse = lambertFactor * (1.0 / (1.0 + (0.25 * distance * distance))); 
+    float diffuse = lambertFactor * (1.0 / (1.0 + (0.5 * distance * distance))); 
 
     // Multiply the color by the illumination level. It will be interpolated 
     // across the triangle.
     vColor = vec4(1.0,1.0,1.0,1.0);
     // *** TODO DEMO LINES ->
     vColor = aColor * lambertFactor;
-    // vColor = aColor * lambertFactor * diffuse;
+    vColor = aColor * lambertFactor * diffuse;
+
 
     vRawColor = aColor ;
-    vParams = aParametersHandle ;
-
     // gl_Position is a special variable used to store the final position.
     // Multiply the vertex by the matrix to get the final point in normalized 
     // screen coordinates.      

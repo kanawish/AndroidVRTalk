@@ -16,6 +16,23 @@ Meanwhile, the main pieces of the puzzle are [gulp.js](http://gulpjs.com/), [nod
 
 I personally use IntelliJ to work on the Javascript Geometry code, and Sublime with GLSL syntax highlighting to edit the vertex and fragment shaders.
 
+## Quick setup
+
+These instructions are for Mac, but the overall idea applies to other environments:
+
+### Install brew 
+
+- Install brew with `/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"` 
+visit [http://brew.sh/](http://brew.sh/) for full install instructions
+- Install node + npm with `brew install node`
+- run `npm install` from the `./workdesk` folder to setup the project.
+- then run `npm install -g gulp` to globally install gulp.
+
+### Running the auto-updater
+
+- `gulp --tasks` for list of available tasks
+- You'll see Firebase needs to have it's environment variable configured, look for it in `gulpfile.js`
+- run `gulp default` with your device connected, and any changes applied to the files under `./workdesk/src` will be automatically updated.
 
 ## The concept
 

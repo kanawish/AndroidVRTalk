@@ -66,7 +66,7 @@ vec3 skyColor( in vec3 rd )
     
     float yd = min(rd.y, 0.);
     rd.y = max(rd.y, 0.);
-      
+
     vec3 col = vec3(0.);
     
     col += vec3(.4, .4 - exp( -rd.y*20. )*.3, .0) * exp(-rd.y*9.); // Red / Green 
