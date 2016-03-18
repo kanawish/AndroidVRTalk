@@ -44,8 +44,8 @@ var rot = 0.25*3.1415; // 45º
 // Series of Cube instance definitions
 var cubeInstanceDefs = [
     //[[0.0, 0.0, -15], [rot, rot, 0], [1, 1, 1], [1.0, 1.0, 1.0, 1], [1,0,0,0]], // start cube
-    [[-4.0, 0.0, -15], [rot, rot, 0], [1, 1, 1], [1.0, 0.1, 0.0, 1], [1,0,0,0]], // red cube
-    [[4.0, 0.0, -15], [rot, rot, 0], [1, 1, 1], [1.0, 0.0, 1.0, 1], [1,0,0,0]], // purple cube
+//    [[-4.0, 0.0, -15], [rot, rot, 0], [1, 1, 1], [1.0, 0.1, 0.0, 1], [1,0,0,0]], // red cube
+//    [[4.0, 0.0, -15], [rot, rot, 0], [1, 1, 1], [1.0, 0.0, 1.0, 1], [1,0,0,0]], // purple cube
     //[[0, -3, -7], [0, 0, 0], [2, 0.25, 1.0], [1., 0.5, 0., 1 ], [1,0,0,0]], // orange "floor"
     [[1.5, -1.5, -10], [rot, 0, 0], [1, 0.5, 1], [0, 0.8, 0, 1], [1,0,0,0]], // green box
     [[-4, 0.0, 10], [0, rot, rot], [1, 1, 1], [1, 0.9, 0, 1], [1,0,0,0]], // yellow box, top right
@@ -91,7 +91,7 @@ var target = {objs: [
     m.buildCube(cubeInstanced),
     m.buildPlane(planeInstanced),
     m.buildLandscape(
-        m.buildInstancedFromArray([ [[0, -4.25, -10], [0, 0, 0], [1,1,1], [.5, .99, .4, 1], [1,0,0,0]] ] ),
+        m.buildInstancedFromArray([ [[0, -4.25, -10], [0, 0, 0], [1,1,1], [.5, .99, .4, 1], [3,0,0,0]] ] ),
         {xMax:30,yMax:30}, p)
     //{v: m.V_CUBE, n: m.N_CUBE, i: instances}
 ]};
