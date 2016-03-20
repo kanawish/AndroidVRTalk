@@ -293,7 +293,8 @@ public class VrTalkActivity extends CardboardActivity {
 
         // Configure the cardboardView. There's a lot of available options, here's two.
         cardboardView.setVRModeEnabled(true);
-        cardboardView.setDistortionCorrectionEnabled(false); // FIXME: Currently broken
+        // FIXME: Currently broken, due to pipeline setup.
+        cardboardView.setDistortionCorrectionEnabled(false);
 
         // Create the renderer that does the actual drawing.
         renderer = new LiveStereoRenderer(this,cameraManager);

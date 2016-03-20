@@ -16,7 +16,9 @@
 
 package com.kanawish.shaderlib.gl;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.opengl.GLES20;
 import android.opengl.Matrix;
 import android.os.SystemClock;
@@ -31,6 +33,7 @@ import com.kanawish.shaderlib.domain.DebugData;
 import com.kanawish.shaderlib.model.GeometryData;
 import com.kanawish.shaderlib.model.GeometryRenderer;
 import com.kanawish.shaderlib.utils.IOUtils;
+import com.kanawish.shaderlib.utils.OrientationUtils;
 import com.kanawish.shaderlib.utils.ShaderCompileException;
 import com.kanawish.shaderlib.utils.SimpleGLUtils;
 
@@ -75,6 +78,7 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
 
     // SECTION: Android specific / resources
     private final Context context; // Mostly needed to load textures. See about moving this in a manager.
+    private final boolean isReverseLandscape;
 
 
     // TODO: Re-implement a simplified version of original scheme.
@@ -111,6 +115,8 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
     public LiveStereoRenderer(Context context, CameraManager cameraManager) {
 
         this.context = context;
+
+        this.isReverseLandscape = OrientationUtils.isReverseLandscape(context);
 
         // Load initial shaders.
         String instancedVertexShader = null;
@@ -238,7 +244,7 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
         Matrix.setLookAtM(camera, 0,
                 0, 0, 1f, // CAMERA_Z, // used to be 4, // eye xyz
                 0f, 0f, 0f, // center xyz
-                0f, 1.0f, 0.0f); // up vector xyz
+                0f, 1.0f, 0.0f); // up vector xyz ...
 
         // We don't use this in our example, but it has uses.
         headTransform.getHeadView(headView, 0);
@@ -326,7 +332,7 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
             geometry.setVertexShaderCode(newVertexShaderCode);
             geometry.initGlProgram();
         } catch (ShaderCompileException e) {
-            Timber.d("Couldn't compile shader, will stay with previous version.", e);
+            Timber.d(e,"Couldn't compile shader, will stay with previous version.");
             compileError = true ;
             return;
         }
@@ -344,7 +350,7 @@ public class LiveStereoRenderer implements CardboardView.StereoRenderer {
             geometry.setFragmentShaderCode(newFragmentShaderCode);
             geometry.initGlProgram();
         } catch (ShaderCompileException e) {
-            Timber.d("Couldn't compile shader, will stay with previous version.", e);
+            Timber.d(e,"Couldn't compile shader, will stay with previous version.");
             compileError = true ;
             return;
         }
