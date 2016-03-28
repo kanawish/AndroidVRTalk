@@ -6,7 +6,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.0.0-beta6'
+        classpath 'com.android.tools.build:gradle:2.0.0-beta7'
 
         classpath 'com.neenbedankt.gradle.plugins:android-apt:1.8'
         classpath 'me.tatarka:gradle-retrolambda:3.2.3'
@@ -23,7 +23,7 @@ def buildTime = new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZo
 
 ext {
     extCompileSdkVersion = 23;
-    extBuildToolsVersion = "23.0.2";
+    extBuildToolsVersion = "23.0.3";
 //    extSupportVersion = "23.0.1";
 
     extMinSdkVersion = 19;

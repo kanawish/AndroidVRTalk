@@ -21,6 +21,7 @@ I personally use IntelliJ to work on the Javascript Geometry code, and Sublime w
 These instructions are for Mac, but the overall idea applies to other environments:
 
 ### Install brew 
+_NOTE: The process generates warning, must look into updating dependencies._
 
 - Install brew with `/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"` 
 visit [http://brew.sh/](http://brew.sh/) for full install instructions
